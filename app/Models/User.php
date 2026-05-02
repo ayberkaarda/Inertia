@@ -23,6 +23,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
     protected $appends = ['developer_title', 'talent_score'];
 

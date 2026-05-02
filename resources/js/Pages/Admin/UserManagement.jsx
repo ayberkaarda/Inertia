@@ -1,22 +1,34 @@
 import React, { useState } from 'react';
-import { Head, router, Link, useForm } from '@inertiajs/react'; // useForm eklendi
+import { Head, router, Link, useForm } from '@inertiajs/react';
 import SidebarHeader from '@/Layouts/SidebarHeaderLayout';
 
 export default function UserManagement({ auth, users, allBadges }) {
     const [editingUser, setEditingUser] = useState(null);
     const [selectedBadges, setSelectedBadges] = useState([]);
 
-    // 🚀 Yeni Rozet Oluşturma Formu
-    const { data, setData, post, processing, reset, errors } = useForm({
-        name: '',
-        icon: null,
+    const { data: userData, setData: setUserData, post: postUser, processing: userProcessing, reset: resetUser, errors: userErrors } = useForm({
+        name: '', email: '', password: '', role: 'user',
     });
+
+    const { data: badgeData, setData: setBadgeData, post: postBadge, processing: badgeProcessing, reset: resetBadge, errors: badgeErrors } = useForm({
+        name: '', icon: null, category: 'frontend',
+    });
+
+    const handleCreateUser = (e) => {
+        e.preventDefault();
+        postUser(route('admin.users.store'), { onSuccess: () => { resetUser(); alert('User created successfully! 🚀'); } });
+    };
 
     const handleCreateBadge = (e) => {
         e.preventDefault();
-        post(route('admin.badges.store'), {
-            onSuccess: () => reset(),
-        });
+        postBadge(route('admin.badges.store'), { onSuccess: () => { resetBadge(); alert('Badge created successfully! 🏆'); } });
+    };
+
+    // 🗑️ YENİ: Rozet Silme Fonksiyonu
+    const handleDeleteBadge = (badgeId) => {
+        if (confirm('Are you sure you want to delete this badge? Users having this badge will lose it!')) {
+            router.delete(route('admin.badges.destroy', badgeId));
+        }
     };
 
     const handleRoleChange = (userId, newRole) => {
@@ -35,9 +47,7 @@ export default function UserManagement({ auth, users, allBadges }) {
     };
 
     const saveBadges = () => {
-        router.post(route('admin.users.badges', editingUser.id), { badge_ids: selectedBadges }, {
-            onSuccess: () => setEditingUser(null)
-        });
+        router.post(route('admin.users.badges', editingUser.id), { badge_ids: selectedBadges }, { onSuccess: () => setEditingUser(null) });
     };
 
     const toggleBadge = (badgeId) => {
@@ -54,48 +64,80 @@ export default function UserManagement({ auth, users, allBadges }) {
 
             <div className="flex flex-col gap-6 pb-10">
                 
-                {/* 🏆 YENİ: ROZET OLUŞTURMA PANELİ */}
-                <div className="bg-[#160d33]/90 backdrop-blur-xl border border-purple-500/20 rounded-3xl p-8 shadow-2xl">
-                    <h2 className="text-xl font-black text-white tracking-wide mb-6">Create New Badge</h2>
-                    <form onSubmit={handleCreateBadge} className="flex flex-wrap items-end gap-6">
-                        <div className="flex-1 min-w-[200px]">
-                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Badge Name</label>
-                            <input 
-                                type="text"
-                                value={data.name}
-                                onChange={e => setData('name', e.target.value)}
-                                className="bg-[#110826] border border-purple-500/30 text-slate-200 text-sm rounded-xl focus:ring-purple-500 focus:border-purple-500 block w-full p-3"
-                                placeholder="e.g. Vue.js or React"
-                            />
-                            {errors.name && <div className="text-red-400 text-xs mt-1">{errors.name}</div>}
+                {/* 👤 KULLANICI OLUŞTURMA PANELİ */}
+                <div className="bg-[#160d33]/90 backdrop-blur-xl border border-blue-500/20 rounded-3xl p-8 shadow-2xl">
+                    <h2 className="text-xl font-black text-white tracking-wide mb-6 uppercase">Register New User</h2>
+                    <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Full Name</label>
+                            <input type="text" value={userData.name} onChange={e => setUserData('name', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-3" placeholder="Name" />
+                            {userErrors.name && <div className="text-red-400 text-xs mt-1">{userErrors.name}</div>}
                         </div>
-
-                        <div className="flex-1 min-w-[200px]">
-                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Badge Icon (Image)</label>
-                            <input 
-                                type="file"
-                                onChange={e => setData('icon', e.target.files[0])}
-                                className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-purple-500/20 file:text-purple-400 hover:file:bg-purple-500/30"
-                            />
-                            {errors.icon && <div className="text-red-400 text-xs mt-1">{errors.icon}</div>}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Email</label>
+                            <input type="email" value={userData.email} onChange={e => setUserData('email', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-3" placeholder="email@example.com" />
+                            {userErrors.email && <div className="text-red-400 text-xs mt-1">{userErrors.email}</div>}
                         </div>
-
-                        <button 
-                            type="submit"
-                            disabled={processing}
-                            className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-xl text-sm font-black transition shadow-lg shadow-purple-500/20 disabled:opacity-50"
-                        >
-                            {processing ? 'Uploading...' : 'Create Badge'}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Password</label>
+                            <input type="password" value={userData.password} onChange={e => setUserData('password', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-3" placeholder="••••••••" />
+                            {userErrors.password && <div className="text-red-400 text-xs mt-1">{userErrors.password}</div>}
+                        </div>
+                        <button type="submit" disabled={userProcessing} className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-xl text-sm font-black transition shadow-lg shadow-purple-500/20 disabled:opacity-50">
+                            {userProcessing ? 'Wait...' : 'Register User'}
                         </button>
                     </form>
                 </div>
 
-                {/* KULLANICI LİSTESİ TABLOSU */}
+                {/* 🏆 ROZET OLUŞTURMA VE SİLME PANELİ */}
                 <div className="bg-[#160d33]/90 backdrop-blur-xl border border-purple-500/20 rounded-3xl p-8 shadow-2xl">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-black text-white tracking-wide">User & Role Management</h2>
-                    </div>
+                    <h2 className="text-xl font-black text-white tracking-wide mb-6 uppercase">Manage Badges</h2>
+                    
+                    {/* Create Badge Form */}
+                    <form onSubmit={handleCreateBadge} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end mb-8 border-b border-white/5 pb-8">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Badge Name</label>
+                            <input type="text" value={badgeData.name} onChange={e => setBadgeData('name', e.target.value)} className="bg-[#110826] border border-purple-500/30 text-slate-200 text-sm rounded-xl focus:ring-purple-500 focus:border-purple-500 block w-full p-3" placeholder="e.g. React" />
+                            {badgeErrors.name && <div className="text-red-400 text-xs mt-1">{badgeErrors.name}</div>}
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Category</label>
+                            <select value={badgeData.category} onChange={e => setBadgeData('category', e.target.value)} className="bg-[#110826] border border-purple-500/30 text-slate-200 text-sm rounded-xl focus:ring-purple-500 focus:border-purple-500 block w-full p-3">
+                                <option value="frontend">Frontend</option>
+                                <option value="backend">Backend</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Icon (Image)</label>
+                            <input type="file" onChange={e => setBadgeData('icon', e.target.files[0])} className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-purple-500/20 file:text-purple-400" />
+                            {badgeErrors.icon && <div className="text-red-400 text-xs mt-1">{badgeErrors.icon}</div>}
+                        </div>
+                        <button type="submit" disabled={badgeProcessing} className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-xl text-sm font-black transition shadow-lg shadow-purple-500/20 disabled:opacity-50">
+                            {badgeProcessing ? 'Wait...' : 'Create Badge'}
+                        </button>
+                    </form>
 
+                    {/* Badge List with Delete Option */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {allBadges.map(badge => (
+                            <div key={badge.id} className="relative group bg-[#110826] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 hover:border-purple-500/50 transition">
+                                <button 
+                                    onClick={() => handleDeleteBadge(badge.id)}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-lg"
+                                >
+                                    ✕
+                                </button>
+                                <img src={`/storage/${badge.icon}`} className="w-10 h-10 object-contain" alt="" />
+                                <span className="text-white text-xs font-bold truncate w-full text-center">{badge.name}</span>
+                                <span className="text-slate-500 text-[10px] uppercase font-black">{badge.category}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* KULLANICI TABLOSU */}
+                <div className="bg-[#160d33]/90 backdrop-blur-xl border border-purple-500/20 rounded-3xl p-8 shadow-2xl">
+                    <h2 className="text-2xl font-black text-white tracking-wide mb-6 uppercase">User Management</h2>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
@@ -114,13 +156,8 @@ export default function UserManagement({ auth, users, allBadges }) {
                                             <div className="text-xs text-slate-400">{user.email}</div>
                                         </td>
                                         <td className="py-4 px-4">
-                                            <select 
-                                                value={user.role} 
-                                                onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                                disabled={user.id === auth.user.id}
-                                                className="bg-[#110826] border border-purple-500/30 text-slate-200 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2"
-                                            >
-                                                <option value="user">General User</option>
+                                            <select value={user.role} onChange={(e) => handleRoleChange(user.id, e.target.value)} disabled={user.id === auth.user.id} className="bg-[#110826] border border-purple-500/30 text-slate-200 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2">
+                                                <option value="user">User</option>
                                                 <option value="admin">Admin</option>
                                             </select>
                                         </td>
@@ -135,19 +172,9 @@ export default function UserManagement({ auth, users, allBadges }) {
                                             </div>
                                         </td>
                                         <td className="py-4 px-4 text-right flex justify-end gap-3">
-                                            <button 
-                                                onClick={() => openBadgeEditor(user)}
-                                                className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition"
-                                            >
-                                                Edit Badges
-                                            </button>
+                                            <button onClick={() => openBadgeEditor(user)} className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition">Edit Badges</button>
                                             {user.id !== auth.user.id && (
-                                                <button 
-                                                    onClick={() => handleDelete(user.id)}
-                                                    className="bg-red-500/20 text-red-400 hover:bg-red-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition"
-                                                >
-                                                    Delete
-                                                </button>
+                                                <button onClick={() => handleDelete(user.id)} className="bg-red-500/20 text-red-400 hover:bg-red-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition">Delete</button>
                                             )}
                                         </td>
                                     </tr>
@@ -157,36 +184,24 @@ export default function UserManagement({ auth, users, allBadges }) {
                     </div>
                 </div>
 
-                {/* ROZET DÜZENLEME PANELİ (MODAL GİBİ) */}
+                {/* MODAL (Edit Badges) */}
                 {editingUser && (
                     <div className="bg-[#2a1354] border border-purple-500/40 rounded-3xl p-6 shadow-2xl mt-4">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-white">Select Badges for <span className="text-purple-400">{editingUser.name}</span></h3>
+                            <h3 className="text-lg font-bold text-white uppercase">Select Badges for <span className="text-purple-400">{editingUser.name}</span></h3>
                             <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-white">✕ Close</button>
                         </div>
-                        
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
                             {allBadges.map(badge => (
                                 <label key={badge.id} className={`flex items-center gap-3 p-3 bg-[#110826] border rounded-xl cursor-pointer transition ${selectedBadges.includes(badge.id) ? 'border-purple-500 bg-purple-500/10' : 'border-white/5 hover:border-purple-500/30'}`}>
-                                    <input 
-                                        type="checkbox" 
-                                        className="form-checkbox text-purple-500 rounded bg-white/10 border-white/20 focus:ring-0 focus:ring-offset-0"
-                                        checked={selectedBadges.includes(badge.id)}
-                                        onChange={() => toggleBadge(badge.id)}
-                                    />
+                                    <input type="checkbox" className="form-checkbox text-purple-500 rounded bg-white/10 border-white/20" checked={selectedBadges.includes(badge.id)} onChange={() => toggleBadge(badge.id)} />
                                     <img src={`/storage/${badge.icon}`} className="w-6 h-6 object-contain" alt={badge.name} />
-                                    <span className="text-xs font-bold text-slate-200">{badge.name}</span>
+                                    <span className="text-xs font-bold text-slate-200">{badge.name} ({badge.category})</span>
                                 </label>
                             ))}
                         </div>
-
                         <div className="flex justify-end">
-                            <button 
-                                onClick={saveBadges}
-                                className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/40 px-6 py-2 rounded-xl text-sm font-bold transition shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-                            >
-                                Save Changes
-                            </button>
+                            <button onClick={saveBadges} className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/40 px-6 py-2 rounded-xl text-sm font-bold transition shadow-[0_0_15px_rgba(16,185,129,0.2)]">Save Changes</button>
                         </div>
                     </div>
                 )}

@@ -71,6 +71,8 @@ Route::get('/user-profile/{id}', [UserController::class, 'show'])->name('user.pr
     Route::post('/admin/users/{user}/badges', [UserManagementController::class, 'syncBadges'])->name('admin.users.badges');
     Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
     Route::post('/admin/badges', [BadgeController::class, 'store'])->name('admin.badges.store');
+    Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
+    Route::delete('/admin/badges/{badge}', [UserManagementController::class, 'destroyBadge'])->name('admin.badges.destroy');
     
     // Admin Görev Atama Rotası (Sprint Controller içinde)
     Route::post('/tasks/{card}/assign', [SprintController::class, 'assignUserToTask'])->name('tasks.assign');
