@@ -38,7 +38,7 @@ class DashboardController extends Controller
         })->where('is_completed', false)->avg('complexity_level') ?? 5;
         $dynamicMatchRate = min(100, round(($userSkillsCount / $averageTaskComplexity) * 50));
 
-        $notifications = \App\Models\Notification::where('user_id', $user->id)
+        $notifications = $user->notifications()
         ->latest()
         ->take(10)
         ->get();
