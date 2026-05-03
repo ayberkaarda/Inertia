@@ -25,7 +25,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     useEffect(() => {
         // NOT: Buradaki URL senin route yapına göre '/api/dashboard-stats' veya '/dashboard-stats' olabilir.
         // Network sekmesinde verinin geldiği URL hangisiyse onu yazmalısın. Ben şimdilik '/api/dashboard-stats' yazdım.
-        axios.get('/api/dashboard-stats') 
+        axios.get('/dashboard-stats') 
             .then(response => {
                 const data = response.data;
                 setSearchData({
