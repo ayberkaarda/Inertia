@@ -24,7 +24,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     // 🎯 3. YENİ: BİLEŞEN YÜKLENDİĞİNDE CEPHANELİĞİ API'DEN DOLDUR
     useEffect(() => {
         // NOT: Buradaki URL senin route yapına göre '/api/dashboard-stats' veya '/dashboard-stats' olabilir.
-        // Network sekmesinde verinin geldiği URL hangisiyse onu yazmalısın. Ben şimdilik '/api/dashboard-stats' yazdım.
+        // Network sekmesinde verinin geldiği URL hangisiyse onu yazmalısın. Ben şimdilik '/dashboard-stats' yazdım.
         axios.get('/dashboard-stats') 
             .then(response => {
                 const data = response.data;
@@ -141,7 +141,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                                 <div className="mb-3">
                                                     <div className="text-[10px] font-black tracking-widest text-slate-500 uppercase px-3 mb-1">Users</div>
                                                     {filteredUsers.map((user) => (
-                                                        <Link key={`user-${user.id}`} href="#" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition text-sm">
+                                                        <Link key={`user-${user.id}`} href={`/user-profile/${user.id}`} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition text-sm">
                                                             <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-bold overflow-hidden border border-purple-500/30">
                                                                 {user.avatar ? <img src={`/storage/${user.avatar}`} alt={user.name} className="w-full h-full object-cover"/> : user.name.charAt(0)}
                                                             </div>
@@ -153,13 +153,13 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                                     ))}
                                                 </div>
                                             )}
-
+                                            
                                             {/* Görevler (Tasks) */}
                                             {filteredTasks.length > 0 && (
                                                 <div className="mb-3">
                                                     <div className="text-[10px] font-black tracking-widest text-slate-500 uppercase px-3 mb-1">Tasks</div>
                                                     {filteredTasks.map((task) => (
-                                                        <Link key={`task-${task.id}`} href="#" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition text-sm">
+                                                        <Link key={`task-${task.id}`} href="/sprints" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition text-sm">
                                                             <span className="text-blue-400">📋</span> 
                                                             <span className="truncate">{task.title}</span>
                                                             <span className="ml-auto text-[10px] bg-white/5 px-2 py-0.5 rounded-full text-slate-400">Lvl {task.complexity_level}</span>
@@ -185,7 +185,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                                 <div className="mb-1">
                                                     <div className="text-[10px] font-black tracking-widest text-slate-500 uppercase px-3 mb-1">Sprints</div>
                                                     {filteredSprints.map((sprint) => (
-                                                        <Link key={`sprint-${sprint.id}`} href="#" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition text-sm">
+                                                        <Link key={`sprint-${sprint.id}`} href="/sprints" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition text-sm">
                                                             <span className="text-orange-400">🏃</span> {sprint.name}
                                                             <span className="ml-auto text-[9px] uppercase font-bold text-slate-500">{sprint.status}</span>
                                                         </Link>
