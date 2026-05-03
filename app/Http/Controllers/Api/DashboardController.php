@@ -52,14 +52,16 @@ class DashboardController extends Controller
             'efficiency_data' => $chartData,
             
             'tasks' => \App\Models\Card::with('users')->latest()->take(3)->get(),
-            
-            'search_tasks' => Card::with('requiredSkills')->latest()->take(50)->get(),
-            'search_workspaces' => Workspace::latest()->take(20)->get(['id', 'name', 'slug']),
-
             'active_sprints_list' => Sprint::where('status', 'active')->with('tasks')->latest()->take(3)->get(),
             'active_sprints' => Sprint::where('status', 'active')->count(),
             'dbTalent' => \App\Models\User::all(['id', 'name', 'email', 'avatar']),
-            'notifications' => $notifications
+            'notifications' => $notifications,
+			
+			// 🎯 ARAMA (SEARCH) SİSTEMİ İÇİN GEREKEN TAM VE PERFORMANSLI CEPHANELİK
+            'search_workspaces' => Workspace::latest()->take(20)->get(['id', 'name', 'slug']),
+            'search_tasks'      => Card::with('requiredSkills')->latest()->take(50)->get(),
+            'search_users'      => User::latest()->take(50)->get(['id', 'name', 'email', 'avatar']),
+            'search_sprints'    => Sprint::latest()->take(20)->get(['id', 'name', 'status']),
         ]);
     }
     /**
