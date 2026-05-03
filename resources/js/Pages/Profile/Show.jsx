@@ -1,5 +1,6 @@
 import SidebarHeader from '@/Layouts/SidebarHeaderLayout';
 import { Head, Link } from '@inertiajs/react';
+import cardBgSrc from '@/assets/images/card-bg.png';
 
 // Varsayılan boş profil yapısı (Hata almamak için dışarıda tanımlıyoruz)
 const defaultProfile = {
@@ -37,7 +38,7 @@ export default function Show({ auth, userProfile }) {
                     <div 
                         className="h-48 w-full relative group"
                         style={{
-                            backgroundImage: `url('/images/card-bg.jpg')`,
+                            backgroundImage: `url(${cardBgSrc})`,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                         }}
