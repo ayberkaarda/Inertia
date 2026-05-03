@@ -1,17 +1,11 @@
 import { Link, router, Head, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
+import axios from 'axios'; // 🎯 EKLENDİ: Verileri arka planda çekmek için
 import backgroundImageSrc from '@/assets/images/backgroundbg.png';
 
 export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }) {
-    // 1. Verileri ve arama cephaneliğini usePage ile Shared Data'dan çekiyoruz
-    // Varsayılan boş dizi [] ataması kritik! Başka sayfada çökmeyi engeller.
-    const { 
-        auth, 
-        search_workspaces = [], 
-        search_tasks = [], 
-        search_users = [], 
-        search_sprints = [] 
-    } = usePage().props;
+    // 1. Sadece auth bilgisini Inertia'dan alıyoruz
+    const { auth } = usePage().props; 
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -19,7 +13,32 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     const searchRef = useRef(null);
     const notifRef = useRef(null);
 
-    // 2. Bildirimler
+    // 🎯 2. YENİ: ARAMA VERİLERİNİ TUTACAĞIMIZ DEPO
+    const [searchData, setSearchData] = useState({
+        workspaces: [],
+        tasks: [],
+        users: [],
+        sprints: []
+    });
+
+    // 🎯 3. YENİ: BİLEŞEN YÜKLENDİĞİNDE CEPHANELİĞİ API'DEN DOLDUR
+    useEffect(() => {
+        // NOT: Buradaki URL senin route yapına göre '/api/dashboard-stats' veya '/dashboard-stats' olabilir.
+        // Network sekmesinde verinin geldiği URL hangisiyse onu yazmalısın. Ben şimdilik '/api/dashboard-stats' yazdım.
+        axios.get('/api/dashboard-stats') 
+            .then(response => {
+                const data = response.data;
+                setSearchData({
+                    workspaces: data.search_workspaces || [],
+                    tasks: data.search_tasks || [],
+                    users: data.search_users || [],
+                    sprints: data.search_sprints || []
+                });
+            })
+            .catch(error => console.log("Arama verileri yüklenemedi:", error));
+    }, []);
+
+    // Bildirimler
     const notifications = auth.user?.notifications || [];
     const unreadCount = notifications.filter(n => n.read_at === null).length;
 
@@ -32,7 +51,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // 🔍 1. SABİT SAYFALAR
+    // 🔍 SABİT SAYFALAR
     const pages = [
         { name: 'Dashboard', url: '/dashboard', icon: '🏠' },
         { name: 'Active Sprints', url: route('sprints.index'), icon: '🏃' },
@@ -42,29 +61,24 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
         { name: 'Profile Settings', url: route('profile.edit'), icon: '👤' },
     ];
 
-    // 🔍 2. FİLTRELEME MANTIĞI (Arama kelimesine göre hepsini ayrı ayrı süzüyoruz)
+    // 🔍 FİLTRELEME MANTIĞI (Boş değerlere karşı (null) güvenlik eklendi)
     const query = searchTerm.toLowerCase();
     const filteredPages = pages.filter(p => p.name.toLowerCase().includes(query));
-    const filteredWorkspaces = search_workspaces.filter(w => w.name.toLowerCase().includes(query));
-    const filteredTasks = search_tasks.filter(t => t.title.toLowerCase().includes(query));
-    const filteredUsers = search_users.filter(u => u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query));
-    const filteredSprints = search_sprints.filter(s => s.name.toLowerCase().includes(query));
+    const filteredWorkspaces = searchData.workspaces.filter(w => (w.name || '').toLowerCase().includes(query));
+    const filteredTasks = searchData.tasks.filter(t => (t.title || '').toLowerCase().includes(query));
+    const filteredUsers = searchData.users.filter(u => (u.name || '').toLowerCase().includes(query) || (u.email || '').toLowerCase().includes(query));
+    const filteredSprints = searchData.sprints.filter(s => (s.name || '').toLowerCase().includes(query));
 
     const hasNoResults = filteredPages.length === 0 && filteredWorkspaces.length === 0 && 
                          filteredTasks.length === 0 && filteredUsers.length === 0 && filteredSprints.length === 0;
 
     // 🔔 Bildirim Fonksiyonları
     const markAsRead = (id) => {
-        router.post(`/notifications/${id}/read`, {}, {
-            preserveScroll: true,
-            onSuccess: () => console.log("Notification marked as read")
-        });
+        router.post(`/notifications/${id}/read`, {}, { preserveScroll: true });
     };
 
     const clearAll = () => {
-        router.post('/notifications/mark-all-read', {}, {
-            preserveScroll: true
-        });
+        router.post('/notifications/mark-all-read', {}, { preserveScroll: true });
     };
 
     return (
