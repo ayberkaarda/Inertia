@@ -9,6 +9,13 @@ export default function ResetPassword({ token, email }) {
         password_confirmation: '',
     });
 
+    // Sayfa değiştirilirse/kapanırsa güvenlik için şifre alanlarını sıfırla
+    useEffect(() => {
+        return () => {
+            reset('password', 'password_confirmation');
+        };
+    }, []);
+
     const submit = (e) => {
         e.preventDefault();
         post(route('password.store'), {
@@ -58,6 +65,7 @@ export default function ResetPassword({ token, email }) {
                                     autoComplete="username"
                                     onChange={(e) => setData('email', e.target.value)}
                                     required
+                                    readOnly // Kullanıcının maili değiştirmesini önlemek istersen bu kalabilir, değilse silebilirsin.
                                 />
                                 {errors.email && <p className="text-[10px] text-red-400 font-bold mt-1.5 uppercase tracking-wide">{errors.email}</p>}
                             </div>

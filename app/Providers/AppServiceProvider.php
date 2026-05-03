@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Notifications\ResetPassword; // 🎯 EKLENDİ
+use Illuminate\Notifications\Messages\MailMessage;
 use App\Models\Card;
 use App\Models\User;
 
@@ -43,6 +45,19 @@ class AppServiceProvider extends ServiceProvider
         // 🌟 YENİ: Görevi Tamamlama İzni (Herkes) 🌟
         Gate::define('complete-task', function (User $user) {
             return true; // Herkes herhangi bir görevi tamamlayabilir
+        });
+		ResetPassword::toMailUsing(function ($notifiable, $token) {
+            return (new MailMessage)
+                ->subject('Password Reset Request')
+                ->greeting('Hello!')
+                ->line('We received a password reset request for your account.')
+                ->action('Reset Password', url(route('password.reset', [
+                    'token' => $token,
+                    'email' => $notifiable->getEmailForPasswordReset(),
+                ], false)))
+                ->line('This password reset link will expire in 60 minutes.')
+                ->line('If you did not request a password reset or did it by mistake, no further action is required.')
+                ->salutation('Best regards, ' . config('app.name'));
         });
     }
 }

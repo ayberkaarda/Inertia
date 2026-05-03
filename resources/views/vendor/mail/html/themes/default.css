@@ -1,0 +1,36 @@
+/* Temel Arkaplan (Koyu Lacivert/Siyah) */
+body, .body, .wrapper {
+    background-color: #0f0822 !important;
+}
+
+/* Mailin Beyaz Kutusunu Senin Temaya Çevirdik */
+.inner-body {
+    background-color: #160d33 !important;
+    border: 1px solid rgba(168, 85, 247, 0.2) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Yazı Renkleri (Gümüş/Slate) */
+h1, h2, h3, p, span, a {
+    color: #e2e8f0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+/* 🎯 Buton Tasarımı (Mor Tema) */
+.button-primary {
+    background-color: #9333ea !important; /* purple-600 */
+    border-top: 10px solid #9333ea !important;
+    border-right: 20px solid #9333ea !important;
+    border-bottom: 10px solid #9333ea !important;
+    border-left: 20px solid #9333ea !important;
+    border-radius: 12px !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.4) !important;
+}
+
+.panel {
+    background-color: #1a0b2e !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
