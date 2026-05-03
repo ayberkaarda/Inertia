@@ -14,14 +14,13 @@ return new class extends Migration
     Schema::table('cards', function (Blueprint $table) {
         // estimated_hours'dan sonra ekleyelim ki tablo düzenli dursun
         $table->integer('actual_hours')->nullable()->after('estimated_hours');
-        $table->boolean('is_completed')->default(false)->after('actual_hours');
     });
 }
 
 public function down()
 {
     Schema::table('cards', function (Blueprint $table) {
-        $table->dropColumn(['actual_hours', 'is_completed']);
+        $table->dropColumn(['actual_hours']);
     });
 }
 };
