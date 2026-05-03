@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\SprintController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\AiInsightsController; 
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Api\WorkspaceController;
 use App\Http\Controllers\Api\TalentMatrixController;
 use App\Http\Controllers\Admin\UserManagementController;
@@ -42,7 +43,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/talent-matrix', [TalentMatrixController::class, 'index'])->name('talent-matrix.index');
 
     // web.php içinde
-Route::get('/user-profile/{id}', [UserController::class, 'show'])->name('user.profile');
+    Route::get('/user-profile/{id}', [UserController::class, 'show'])->name('user.profile');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 
 
     // --- SPRINT & TASK İŞLEMLERİ ---

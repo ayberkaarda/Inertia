@@ -28,8 +28,8 @@ class HandleInertiaRequests extends Middleware
      * @return array<string, mixed>
      */
     public function share(Request $request): array
-    {
-        return [
+{
+    return [
         ...parent::share($request),
         'auth' => [
             'user' => $request->user() ? [
@@ -40,8 +40,10 @@ class HandleInertiaRequests extends Middleware
                 'developer_title' => $request->user()->developer_title,
                 'talent_score' => $request->user()->talent_score,
                 'avatar' => $request->user()->avatar,
+                // Bildirimleri buraya ekliyoruz
+                'notifications' => $request->user()->notifications()->latest()->take(10)->get(),
             ] : null,
         ],
     ];
-    }
+}
 }

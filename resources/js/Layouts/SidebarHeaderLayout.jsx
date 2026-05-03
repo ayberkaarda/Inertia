@@ -1,30 +1,22 @@
-import { Link, router, Head } from '@inertiajs/react';
+import { Link, router, Head, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import backgroundImageSrc from '@/assets/images/backgroundbg.png';
 
-export default function SidebarHeaderLayout({ auth, children, pageTitle = "Platform" }) {
+export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }) {
+    // 1. Verileri doğrudan usePage ile Shared Data'dan çekiyoruz
+    const { auth } = usePage().props;
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const searchRef = useRef(null);
     const notifRef = useRef(null);
 
-    // 📊 Tüm veriler stats içinde toplanıyor
-    const [stats, setStats] = useState({ 
-        tasks: [], 
-        search_tasks: [], 
-        search_workspaces: [], 
-        dbTalent: [],
-        notifications: [] // Veritabanından gelecek gerçek bildirimler
-    });
+    // 2. Bildirimler artık auth.user içinde Shared Data olarak geliyor
+    // Laravel bildirim yapısında (DatabaseNotification) mesaj genellikle 'data' içindedir.
+    const notifications = auth.user?.notifications || [];
+    const unreadCount = notifications.filter(n => n.read_at === null).length;
 
     useEffect(() => {
-        // DashboardController'daki index metodundan verileri çekiyoruz
-        axios.get('/dashboard-stats')
-            .then(res => setStats(res.data))
-            .catch(err => console.error("Sync Error:", err));
-
         function handleClickOutside(event) {
             if (searchRef.current && !searchRef.current.contains(event.target)) setIsSearchOpen(false);
             if (notifRef.current && !notifRef.current.contains(event.target)) setIsNotifOpen(false);
@@ -33,7 +25,7 @@ export default function SidebarHeaderLayout({ auth, children, pageTitle = "Platf
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // 🔍 Arama Mantığı
+    // 🔍 Arama Mantığı (Stats yerine doğrudan auth üzerinden veya sabitlerden)
     const pages = [
         { name: 'Dashboard', url: '/dashboard', icon: '🏠' },
         { name: 'Active Sprints', url: route('sprints.index'), icon: '🏃' },
@@ -44,29 +36,19 @@ export default function SidebarHeaderLayout({ auth, children, pageTitle = "Platf
     ];
 
     const filteredPages = pages.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    const filteredTasks = stats.search_tasks?.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())) || [];
-    const filteredUsers = (stats.dbTalent || []).filter(u => 
-        u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        u.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
-    // 🔔 Bildirim Mantığı (Stats üzerinden dinamik)
-    const notifications = stats.notifications || [];
-    const unreadCount = notifications.filter(n => !n.read).length;
-
+    // 🔔 Bildirim Fonksiyonları (Artık router.post ile sunucuya gidiyor)
     const markAsRead = (id) => {
-        // Arayüzde anında güncelleme (Optimistic Update)
-        const updatedNotifs = notifications.map(n => n.id === id ? { ...n, read: true } : n);
-        setStats({ ...stats, notifications: updatedNotifs });
-
-        // Backend'e bildirim durumunu gönder (Routelarına göre isimlendir)
-        // axios.post(`/notifications/${id}/read`);
+        router.post(`/notifications/${id}/read`, {}, {
+            preserveScroll: true,
+            onSuccess: () => console.log("Notification marked as read") // İsterseniz burada bildirimleri güncellemek için bir state yönetimi ekleyebilirsiniz
+        });
     };
 
     const clearAll = () => {
-        const updatedNotifs = notifications.map(n => ({ ...n, read: true }));
-        setStats({ ...stats, notifications: updatedNotifs });
-        // axios.post('/notifications/mark-all-read');
+        router.post('/notifications/mark-all-read', {}, {
+            preserveScroll: true
+        });
     };
 
     return (
@@ -100,13 +82,17 @@ export default function SidebarHeaderLayout({ auth, children, pageTitle = "Platf
                             <div className="relative" ref={searchRef}>
                                 <div className="bg-[#0f0822] border border-purple-500/20 px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-300 focus-within:border-purple-500/60 w-64 focus-within:w-96 shadow-inner">
                                     <span className="text-slate-400 text-sm">🔍</span>
-                                    <input type="text" placeholder="Access talent matrix..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setIsSearchOpen(true); }} onFocus={() => setIsSearchOpen(true)} className="bg-transparent border-none text-sm text-white focus:ring-0 w-full outline-none placeholder-slate-600" />
+                                    <input type="text" placeholder="Search pages..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setIsSearchOpen(true); }} onFocus={() => setIsSearchOpen(true)} className="bg-transparent border-none text-sm text-white focus:ring-0 w-full outline-none placeholder-slate-600" />
                                 </div>
                                 
                                 {isSearchOpen && searchTerm && (
                                     <div className="absolute top-14 right-0 w-full min-w-[340px] bg-[#1a0b2e] border border-purple-500/30 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
                                         <div className="max-h-[450px] overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-purple-500/30">
-                                            {/* Modüller, Kullanıcılar ve Görevler mapi burada kalıyor */}
+                                             {filteredPages.map((page, idx) => (
+                                                <Link key={idx} href={page.url} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition text-sm">
+                                                    <span>{page.icon}</span> {page.name}
+                                                </Link>
+                                             ))}
                                         </div>
                                     </div>
                                 )}
@@ -116,7 +102,7 @@ export default function SidebarHeaderLayout({ auth, children, pageTitle = "Platf
                             <div className="flex gap-4 text-lg items-center ml-2 border-l border-white/10 pl-6">
                                 <Link href={route('profile.edit')} className="hover:scale-110 transition-transform text-white">👤</Link>
                                 
-                                {auth.user.role === 'admin' && (
+                                {auth.user?.role === 'admin' && (
                                     <Link href={route('admin.users')} className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-600/20 border border-purple-500/30 transition-all shadow-lg shadow-purple-500/10">⚙️</Link>
                                 )}
 
@@ -144,12 +130,13 @@ export default function SidebarHeaderLayout({ auth, children, pageTitle = "Platf
                                                         <div 
                                                             key={n.id} 
                                                             onClick={() => markAsRead(n.id)}
-                                                            className={`flex gap-3 p-3 rounded-xl mb-1 cursor-pointer transition-all ${n.read ? 'opacity-40' : 'bg-white/5 hover:bg-white/10 border border-white/5'}`}
+                                                            className={`flex gap-3 p-3 rounded-xl mb-1 cursor-pointer transition-all ${n.read_at ? 'opacity-40' : 'bg-white/5 hover:bg-white/10 border border-white/5'}`}
                                                         >
-                                                            <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${n.read ? 'bg-slate-600' : 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]'}`}></div>
+                                                            <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${n.read_at ? 'bg-slate-600' : 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]'}`}></div>
                                                             <div className="flex flex-col gap-0.5 text-left overflow-hidden">
-                                                                <p className="text-xs text-slate-200 leading-snug">{n.message}</p>
-                                                                <span className="text-[9px] font-bold text-slate-500 uppercase">{n.time || 'now'}</span>
+                                                                {/* Laravel bildirim verisi genellikle 'data' içindedir */}
+                                                                <p className="text-xs text-slate-200 leading-snug">{n.data?.message || n.message}</p>
+                                                                <span className="text-[9px] font-bold text-slate-500 uppercase">{n.created_at_human || 'now'}</span>
                                                             </div>
                                                         </div>
                                                     ))
