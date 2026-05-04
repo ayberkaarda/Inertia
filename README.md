@@ -22,10 +22,10 @@ Modern ekiplerin ihtiyaçlarına yönelik olarak geliştirilen bu portal, sadece
 
 *   🤖 **AI Insights:** Proje gidişatını analiz eden ve darboğazları tahmin eden akıllı asistan.
 *   🧬 **Dinamik Yetenek Matrisi:** Doğru projeye doğru yeteneği atamayı sağlayan görselleştirilmiş `Talent Matrix` sistemi.
-*   ⚡ **Gerçek Zamanlı Akış:** Laravel Reverb[cite: 1] sayesinde görev (`Card`), Sprint ve Pano (`Board`) güncellemelerinde anında ekran senkronizasyonu.
+*   ⚡ **Gerçek Zamanlı Akış:** Laravel Reverb sayesinde görev (`Card`), Sprint ve Pano (`Board`) güncellemelerinde anında ekran senkronizasyonu.
 *   🏢 **İzole Çalışma Alanları:** Her ekibin veya projenin kendine ait bağımsız `Workspace` panoları.
 *   🏆 **Oyunlaştırma:** Çalışan motivasyonunu artırmak için başarımlara dayalı `Badge` (Rozet) sistemi.
-*   🔒 **Güvenli Kimlik Doğrulama:** Laravel Sanctum[cite: 1] ile korunan güvenli oturum yönetimi ve şifre sıfırlama akışları.
+*   🔒 **Güvenli Kimlik Doğrulama:** Laravel Sanctum ile korunan güvenli oturum yönetimi ve şifre sıfırlama akışları.
 
 ## 🛠️ Mimari & Teknoloji Yığını
 
