@@ -16,24 +16,24 @@
 
 ## 🌌 Proje Vizyonu
 
-Modern ekiplerin ihtiyaçlarına yönelik olarak geliştirilen bu portal, sadece görev atamakla kalmaz; **Yapay Zeka (AI) içgörüleri**[cite: 1] ile ekibin potansiyelini analiz eder, yetenek matrisleri oluşturur[cite: 1] ve **Laravel Reverb**[cite: 1] destekli WebSocket altyapısıyla[cite: 1] sayfayı yenilemeden anlık bir deneyim sunar. Karanlık teması (Dark Mode) ve modern kullanıcı arayüzü ile performans odaklı bir çalışma alanı sağlar.
+Modern ekiplerin ihtiyaçlarına yönelik olarak geliştirilen bu portal, sadece görev atamakla kalmaz; **Yapay Zeka (AI) içgörüleri** ile ekibin potansiyelini analiz eder, yetenek matrisleri oluşturur ve **Laravel Reverb** destekli WebSocket altyapısıyla sayfayı yenilemeden anlık bir deneyim sunar. Karanlık teması (Dark Mode) ve modern kullanıcı arayüzü ile performans odaklı bir çalışma alanı sağlar.
 
 ## ✨ Öne Çıkan Özellikler
 
-*   🤖 **AI Insights:** Proje gidişatını analiz eden ve darboğazları tahmin eden akıllı asistan[cite: 1].
-*   🧬 **Dinamik Yetenek Matrisi:** Doğru projeye doğru yeteneği atamayı sağlayan görselleştirilmiş `Talent Matrix` sistemi[cite: 1].
-*   ⚡ **Gerçek Zamanlı Akış:** Laravel Reverb[cite: 1] sayesinde görev (`Card`), Sprint ve Pano (`Board`) güncellemelerinde anında ekran senkronizasyonu[cite: 1].
-*   🏢 **İzole Çalışma Alanları:** Her ekibin veya projenin kendine ait bağımsız `Workspace` panoları[cite: 1].
-*   🏆 **Oyunlaştırma:** Çalışan motivasyonunu artırmak için başarımlara dayalı `Badge` (Rozet) sistemi[cite: 1].
-*   🔒 **Güvenli Kimlik Doğrulama:** Laravel Sanctum[cite: 1] ile korunan güvenli oturum yönetimi ve şifre sıfırlama akışları[cite: 1].
+*   🤖 **AI Insights:** Proje gidişatını analiz eden ve darboğazları tahmin eden akıllı asistan.
+*   🧬 **Dinamik Yetenek Matrisi:** Doğru projeye doğru yeteneği atamayı sağlayan görselleştirilmiş `Talent Matrix` sistemi.
+*   ⚡ **Gerçek Zamanlı Akış:** Laravel Reverb[cite: 1] sayesinde görev (`Card`), Sprint ve Pano (`Board`) güncellemelerinde anında ekran senkronizasyonu.
+*   🏢 **İzole Çalışma Alanları:** Her ekibin veya projenin kendine ait bağımsız `Workspace` panoları.
+*   🏆 **Oyunlaştırma:** Çalışan motivasyonunu artırmak için başarımlara dayalı `Badge` (Rozet) sistemi.
+*   🔒 **Güvenli Kimlik Doğrulama:** Laravel Sanctum[cite: 1] ile korunan güvenli oturum yönetimi ve şifre sıfırlama akışları.
 
 ## 🛠️ Mimari & Teknoloji Yığını
 
 ### Frontend
-*   **Kütüphane:** React 18[cite: 1]
-*   **Bağlantı Katmanı:** Inertia.js[cite: 1]
-*   **Stil:** Tailwind CSS[cite: 1]
-*   **Derleyici:** Vite[cite: 1]
+*   **Kütüphane:** React 18
+*   **Bağlantı Katmanı:** Inertia.js
+*   **Stil:** Tailwind CSS
+*   **Derleyici:** Vite
 
 ### Backend
 *   **Framework:** Laravel 11[cite: 1]
