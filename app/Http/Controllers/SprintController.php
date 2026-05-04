@@ -161,6 +161,10 @@ class SprintController extends Controller
             'is_completed' => true
         ]);
         
+        // 🎯 ÇÖZÜM BURADA: Ölümcül Beyaz Ekranı (White Screen) önlemek için
+        // Event fırlatılmadan ve döngülere girilmeden önce tüm ilişkileri (relations) yüklüyoruz.
+        $card->load(['users', 'badges']);
+
         // 🌟 2. OYUNLAŞTIRMA (GAMIFICATION): ROZET DAĞITIMI 🌟
         // Bu göreve atanmış (join yapmış) tüm kullanıcıları bul
         foreach ($card->users as $user) {
