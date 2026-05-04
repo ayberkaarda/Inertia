@@ -36,9 +36,9 @@ Modern ekiplerin ihtiyaçlarına yönelik olarak geliştirilen bu portal, sadece
 *   **Derleyici:** Vite
 
 ### Backend
-*   **Framework:** Laravel 11[cite: 1]
-*   **Veritabanı:** MySQL / PostgreSQL[cite: 1]
-*   **WebSocket:** Laravel Reverb[cite: 1]
+*   **Framework:** Laravel 11
+*   **Veritabanı:** MySQL / PostgreSQL
+*   **WebSocket:** Laravel Reverb
 
 ---
 
