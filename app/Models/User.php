@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Card;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -43,6 +44,7 @@ class User extends Authenticatable
         return $this->belongsToMany(Skill::class, 'user_skill')
                     ->withPivot('proficiency_level');
     }
+
     // Kullanıcının Rozetleri İlişkisi
     public function badges()
     {
@@ -50,12 +52,20 @@ class User extends Authenticatable
                     ->withPivot(['last_earned_at', 'expires_at'])
                     ->withTimestamps();
     }
-    // Kullanıcının atanmış olduğu tüm kartlar (görevler)
+    
+    // Kullanıcının atanmış olduğu tüm kartlar (görevler) - Mevcut olan
     public function tasks(): BelongsToMany
     {
-    // Kart modelinin adının 'Card' olduğunu ve 'user_id' sütunuyla bağlı olduğunu varsayıyorum.
-    return $this->belongsToMany(Card::class, 'card_user');
+        return $this->belongsToMany(Card::class, 'card_user');
     }
+
+    // 🎯 ÇÖZÜM BURADA: Controller'ın aradığı 'cards' ilişkisini ekledik!
+    // Sistemin başka bir yerinde tasks() kullanılıyordur diye onu silmedik, bunu yanına ekledik.
+    public function cards(): BelongsToMany
+    {
+        return $this->belongsToMany(Card::class, 'card_user');
+    }
+
     // KULLANICI YETKİ KONTROLLERİ
     public function isAdmin()
     {
@@ -91,7 +101,7 @@ class User extends Authenticatable
         // Alanı (Role) Belirle
         $levelrole = 'Developer';
         if ($hasFrontend && $hasBackend) {
-            $levelrole = 'Fullstack Developer';
+            $levelrole = 'Software Developer'; // Revize edildi
         } elseif ($hasFrontend) {
             $levelrole = 'Frontend Developer';
         } elseif ($hasBackend) {
@@ -108,8 +118,9 @@ class User extends Authenticatable
             $level = 'Senior '; // 6 ve üzeri rozeti varsa Senior!
         }
 
-        return $level . $levelrole; // Örn: "Junior Frontend Developer" veya "Senior Fullstack Developer"
+        return $level . $levelrole; // Örn: "Junior Frontend Developer" veya "Senior Software Developer"
     }
+
     // 🧠 DİNAMİK YETENEK PUANI HESAPLAYICI (Talent Score)
     public function getTalentScoreAttribute()
     {
