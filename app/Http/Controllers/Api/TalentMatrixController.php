@@ -80,7 +80,11 @@ class TalentMatrixController extends Controller
 
             // Gerçek senaryoda bu, $user->cards()->whereHas('badges', ...) ile hesaplanabilir
 
-            $totalTasks = $badgesInCat->count() * rand(3, 8); 
+            $totalTasks = $user->cards()
+            ->where('is_completed', true) // Sadece onaylanmış (bitmiş) görevleri sayıyoruz
+            ->whereHas('badges', function ($query) use ($badgesInCat) {
+            // Bu kategorideki rozetlerin ID'lerini al ve görevin rozetleriyle eşleştir
+            $query->whereIn('badges.id', $badgesInCat->pluck('id')); })->count(); 
 
 
 
@@ -136,7 +140,7 @@ class TalentMatrixController extends Controller
 
             
 
-            $status = 'Girdi';
+            $status = ' Active';
 
             $type = 'in';
 
@@ -148,7 +152,7 @@ class TalentMatrixController extends Controller
 
             if ($expiresAt->isPast()) {
 
-                $status = 'Çıktı';
+                $status = ' Out of Date';
 
                 $type = 'out';
 
@@ -160,7 +164,7 @@ class TalentMatrixController extends Controller
 
             elseif ($expiresAt->diffInDays($now) <= 7) {
 
-                $status = 'Bildiri';
+                $status = ' Expiring Soon';
 
                 $type = 'warn';
 
