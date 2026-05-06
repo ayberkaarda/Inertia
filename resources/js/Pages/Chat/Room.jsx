@@ -8,49 +8,46 @@ export default function Room({ auth, conversation, messages, receiver }) {
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef(null);
 
-    // 🌟 YENİ MESAJLARI DİNLE (LARAVEL REVERB / ECHO BÜYÜSÜ)
+    // 🌟 YENİ: Alıcının Avatarını Güvenli Şekilde Oluştur (Tıpkı Profil sayfasındaki gibi)
+    const receiverAvatar = receiver.avatar 
+        ? `/storage/${receiver.avatar}` 
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(receiver.name)}&background=1a0b2e&color=8b5cf6&bold=true&size=128`;
+
+    // Yeni mesajları dinle (Reverb)
     useEffect(() => {
-        // Kanalı dinlemeye başla
         window.Echo.private(`chat.${conversation.id}`)
             .listen('MessageSent', (e) => {
-                // Eğer gelen mesajı atan kişi ben değilsem, listeye ekle
-                // (Kendi mesajlarımızı axios ile gönderirken zaten ekliyoruz)
                 if (e.message.sender_id !== auth.user.id) {
                     setMessagesList((prev) => [...prev, e.message]);
                 }
             });
 
-        // Sayfadan çıkınca kanaldan ayrıl (Hafıza sızıntısını önler)
         return () => {
             window.Echo.leave(`chat.${conversation.id}`);
         };
     }, [conversation.id, auth.user.id]);
 
-    // 🌟 OTOMATİK AŞAĞI KAYDIRMA (Yeni mesaj gelince)
+    // Otomatik aşağı kaydır
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messagesList]);
 
-    // 🌟 MESAJ GÖNDERME (Sayfa Yenilenmeden)
+    // Mesaj gönder
     const sendMessage = async (e) => {
         e.preventDefault();
-        
         if (!newMessage.trim()) return;
 
         const tempMessage = newMessage;
-        setNewMessage(''); // Input'u anında temizle (Hızlı hissiyat)
+        setNewMessage(''); 
 
         try {
-            // Arka plana mermiyi ateşle
             const response = await axios.post(`/chat/${conversation.id}/message`, {
                 body: tempMessage
             });
-            
-            // Başarılı olursa kendi ekranımdaki listeye ekle
             setMessagesList((prev) => [...prev, response.data]);
         } catch (error) {
             console.error("Mesaj gönderilemedi:", error);
-            setNewMessage(tempMessage); // Hata olursa silinen mesajı geri getir
+            setNewMessage(tempMessage); 
         }
     };
 
@@ -58,15 +55,39 @@ export default function Room({ auth, conversation, messages, receiver }) {
         <Sidebarheader
             user={auth.user}
             header={
-                <div className="flex items-center space-x-4">
-                    <Link href="/inbox" className="text-gray-400 hover:text-purple-400 transition">
+                <div className="flex items-center space-x-6">
+                    {/* 🌟 1. GERİ DÖN BUTONU */}
+                    <Link href="/inbox" className="text-gray-400 hover:text-purple-400 transition" title="Gelen Kutusuna Dön">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                     </Link>
-                    <h2 className="font-semibold text-xl text-gray-200 leading-tight">
-                        Encrypted Comms: <span className="text-purple-400">{receiver.name}</span>
-                    </h2>
+
+                    {/* 🌟 2. TIKLANABİLİR PROFİL KARTI (SİBERPUNK) */}
+                    {/* DİKKAT: Projendeki profil url yapısı /users/id veya /profile/id şeklindeyse burayı ona göre uyarla! */}
+                    <Link href={`/user/${receiver.id}`} className="flex items-center space-x-3 group">
+                        
+                        {/* Avatar Çerçevesi */}
+                        <div className="relative">
+                            <div className="w-12 h-12 rounded-full bg-[#1a0b2e] flex items-center justify-center overflow-hidden border-2 border-purple-500/40 shadow-[0_0_10px_rgba(168,85,247,0.3)] group-hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] group-hover:scale-105 transition-all duration-300">
+                                <img src={receiverAvatar} alt={receiver.name} className="w-full h-full object-cover" />
+                            </div>
+                            {/* Online/Aktif Noktası (Yeşil Işık) */}
+                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-gray-900 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                        </div>
+                        
+                        {/* İsim ve Profil Linki */}
+                        <div className="flex flex-col">
+                            <h2 className="font-bold text-lg text-gray-200 leading-tight group-hover:text-purple-400 transition-colors drop-shadow-md">
+                                {receiver.name}
+                            </h2>
+                            <p className="text-[10px] text-purple-500/70 font-mono tracking-widest uppercase flex items-center gap-1 group-hover:text-purple-400 transition-colors">
+                                View Profile 
+                                <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                            </p>
+                        </div>
+
+                    </Link>
                 </div>
             }
         >
@@ -78,16 +99,16 @@ export default function Room({ auth, conversation, messages, receiver }) {
                     {/* Siberpunk Çerçeve (Ana Sohbet Kutusu) */}
                     <div className="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl flex flex-col h-full overflow-hidden relative">
                         
-                        {/* Arka Plan Deseni (Opsiyonel Matrix Havası) */}
+                        {/* Arka Plan Deseni */}
                         <div className="absolute inset-0 opacity-5 pointer-events-none" 
                              style={{ backgroundImage: 'radial-gradient(#a855f7 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
                         </div>
 
-                        {/* 🌟 MESAJLARIN LİSTELENDİĞİ ALAN */}
+                        {/* MESAJLARIN LİSTELENDİĞİ ALAN */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-4 z-10 custom-scrollbar">
                             {messagesList.length === 0 ? (
-                                <div className="text-center text-gray-500 mt-20">
-                                    Bağlantı kuruldu. İlk mesajı göndererek iletişimi başlat.
+                                <div className="text-center text-gray-500 mt-20 font-mono text-sm">
+                                    [BAĞLANTI KURULDU] <br/> Güvenli hat açıldı. İlk veriyi gönder.
                                 </div>
                             ) : (
                                 messagesList.map((msg) => {
@@ -102,16 +123,16 @@ export default function Room({ auth, conversation, messages, receiver }) {
                                                 <p className="break-words">{msg.body}</p>
                                             </div>
                                             <span className="text-[10px] text-gray-500 mt-1 font-mono">
-                                                {msg.time} {isMe && '✓'}
+                                                {msg.time} {isMe && '✓✓'}
                                             </span>
                                         </div>
                                     );
                                 })
                             )}
-                            <div ref={messagesEndRef} /> {/* Otomatik kaydırma hedefi */}
+                            <div ref={messagesEndRef} />
                         </div>
 
-                        {/* 🌟 MESAJ GÖNDERME İNPUTU */}
+                        {/* MESAJ GÖNDERME İNPUTU */}
                         <div className="p-4 bg-gray-950 border-t border-gray-800 z-10">
                             <form onSubmit={sendMessage} className="flex space-x-2">
                                 <input
