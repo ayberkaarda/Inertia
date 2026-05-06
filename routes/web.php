@@ -6,6 +6,7 @@ use App\Http\Controllers\SprintController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\AiInsightsController; 
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Api\WorkspaceController;
 use App\Http\Controllers\Api\TalentMatrixController;
 use App\Http\Controllers\Admin\UserManagementController;
@@ -76,6 +77,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/admin/badges', [BadgeController::class, 'store'])->name('admin.badges.store');
     Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
     Route::delete('/admin/badges/{badge}', [UserManagementController::class, 'destroyBadge'])->name('admin.badges.destroy');
+    
+    // --- CHAT & MESAJLAŞMA ---
+    Route::get('/inbox', [ChatController::class, 'index'])->name('chat.inbox');
+    Route::get('/chat/{receiver}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('/chat/{conversation}/message', [ChatController::class, 'store'])->name('chat.store');
     
     // Admin Görev Atama Rotası (Sprint Controller içinde)
     Route::post('/tasks/{card}/assign', [SprintController::class, 'assignUserToTask'])->name('tasks.assign');

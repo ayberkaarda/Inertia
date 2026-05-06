@@ -4,9 +4,10 @@ import cardBgSrc from '@/assets/images/card-bg.png';
 
 // Varsayılan boş profil yapısı (Hata almamak için dışarıda tanımlıyoruz)
 const defaultProfile = {
-    name: "Bilinmeyen Kullanıcı",
-    email: "email@bekleniyor.com",
-    developer_title: "Developer",
+    id: 0,
+    name: "Unknown User",
+    email: "email@test.com",
+    developer_title: "None Title",
     talentScore: 0,
     performance: 0,
     growth: "+0",
@@ -70,16 +71,35 @@ export default function Show({ auth, userProfile }) {
                             <p className="text-xs text-slate-400 mt-1">{profile.email}</p>
                         </div>
 
-                        {/* Hızlı İstatistikler */}
-                        <div className="flex gap-4">
-                            <div className="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl text-center backdrop-blur-md">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Talent Score</p>
-                                <p className="text-2xl font-black text-white">{profile.talentScore}<span className="text-sm text-slate-500">/10</span></p>
+                        {/* Hızlı İstatistikler & MESAJ BUTONU Kapsayıcısı */}
+                        <div className="flex flex-col items-center md:items-end gap-4">
+                            
+                            {/* İstatistikler */}
+                            <div className="flex gap-4">
+                                <div className="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl text-center backdrop-blur-md">
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Talent Score</p>
+                                    <p className="text-2xl font-black text-white">{profile.talentScore}<span className="text-sm text-slate-500">/10</span></p>
+                                </div>
+                                <div className="bg-emerald-500/10 border border-emerald-500/20 px-6 py-3 rounded-2xl text-center backdrop-blur-md">
+                                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-1">Performance</p>
+                                    <p className="text-2xl font-black text-emerald-400">%{profile.performance}</p>
+                                </div>
                             </div>
-                            <div className="bg-emerald-500/10 border border-emerald-500/20 px-6 py-3 rounded-2xl text-center backdrop-blur-md">
-                                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-1">Performance</p>
-                                <p className="text-2xl font-black text-emerald-400">%{profile.performance}</p>
-                            </div>
+
+                            {/* 🌟 YENİ EKLENEN: MESAJ GÖNDER BUTONU */}
+                            {/* Sadece bakan kişi kendi profilinde değilse gösterilir */}
+                            {auth.user.id !== profile.id && (
+                                <Link 
+                                    href={`/chat/${profile.id}`} 
+                                    className="flex items-center gap-2 w-full justify-center md:w-auto px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(147,51,234,0.4)] hover:shadow-[0_0_25px_rgba(147,51,234,0.6)] transition-all uppercase tracking-widest text-xs border border-purple-400/50 hover:border-purple-300"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                    </svg>
+                                    Send a Message
+                                </Link>
+                            )}
+
                         </div>
                     </div>
                 </div>
