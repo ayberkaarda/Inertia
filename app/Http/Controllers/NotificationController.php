@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
@@ -13,15 +12,18 @@ class NotificationController extends Controller
      */
     public function markAsRead($id)
     {
-    /** @var \App\Models\User $user */
-    $user = Auth::user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
-    if ($user) {
-        $notification = $user->notifications()->findOrFail($id);
-        $notification->markAsRead();
-    }
+        if ($user) {
+            // Kendi custom modelimiz üzerinden bildirimi bul
+            $notification = $user->notifications()->findOrFail($id);
+            
+            // Okundu işaretini 'read_at' sütununa şu anki zamanı (now) yazarak yapıyoruz
+            $notification->update(['read_at' => now()]);
+        }
 
-    return back();
+        return back();
     }
 
     /**
@@ -29,10 +31,12 @@ class NotificationController extends Controller
      */
     public function markAllAsRead()
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         if ($user) {
-            $user->unreadNotifications->markAsRead();
+            // Sadece okunmamış olanları (read_at IS NULL) bul ve hepsinin saatini şu an yap
+            $user->notifications()->whereNull('read_at')->update(['read_at' => now()]);
         }
 
         return back();
