@@ -25,4 +25,8 @@ class NewNotification implements ShouldBroadcastNow
             new PrivateChannel('user.' . $this->notification->user_id),
         ];
     }
+    public function broadcastAs(): string
+    {
+        return 'NewNotification';
+    }
 }

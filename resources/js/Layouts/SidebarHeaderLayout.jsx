@@ -10,7 +10,6 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     
-    // 🌟 MOBİL MENÜ STATE'İ
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const searchRef = useRef(null);
@@ -40,10 +39,12 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
         setNotificationsList(auth.user?.notifications || []);
     }, [auth.user?.notifications]);
 
+    // 🌟 EN KRİTİK NOKTA BURASI: Başındaki NOKTA (.) eklendi!
     useEffect(() => {
         if (auth.user?.id && window.Echo) {
             window.Echo.private(`user.${auth.user.id}`)
-                .listen('NewNotification', (e) => {
+                .listen('.NewNotification', (e) => {
+                    console.log("Yeni Bildirim Geldi:", e.notification);
                     setNotificationsList((prev) => [e.notification, ...prev]);
                 });
 
@@ -84,34 +85,28 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     const hasNoResults = filteredPages.length === 0 && filteredWorkspaces.length === 0 && 
                          filteredTasks.length === 0 && filteredUsers.length === 0 && filteredSprints.length === 0;
 
-    // 🌟 YENİ: Gelişmiş Bildirim Tıklama Yöneticisi (Işınlanma)
     const handleNotificationClick = (n) => {
-        // 1. Arka planda okundu yap
         if (!n.read_at) {
             axios.post(`/notifications/${n.id}/read`).then(() => {
                 setNotificationsList(prev => prev.map(item => item.id === n.id ? { ...item, read_at: new Date().toISOString() } : item));
             });
         }
 
-        // 2. Mesajın içindeki JSON'u çöz ve linke uç
         try {
             const parsedData = JSON.parse(n.message);
             if (parsedData.link) {
-                setIsNotifOpen(false); // Dropdown'u kapat
-                router.visit(parsedData.link); // Odaya git
+                setIsNotifOpen(false); 
+                router.visit(parsedData.link); 
             }
-        } catch (e) {
-            // Eğer JSON değilse, sadece okundu yap
-        }
+        } catch (e) {}
     };
 
-    // 🌟 YENİ: Mesajı Güvenli Basıcı (JSON'ı gizler)
     const getNotifText = (msg) => {
         try {
             const parsed = JSON.parse(msg);
             return parsed.text || msg;
         } catch (e) {
-            return msg; // Düz metinse direkt göster
+            return msg; 
         }
     };
 
@@ -122,7 +117,6 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     return (
         <div className="min-h-screen font-sans text-slate-200 bg-cover bg-center bg-fixed" style={{ backgroundImage: `url(${backgroundImageSrc})` }}>
             
-            {/* 🌟 MOBİL MENÜ KARARTMA EFEKTİ (OVERLAY) */}
             {isMobileMenuOpen && (
                 <div 
                     className="fixed inset-0 bg-[#0f0822]/80 backdrop-blur-sm z-[60] lg:hidden"
@@ -132,10 +126,8 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
 
             <div className="max-w-[1600px] mx-auto flex lg:gap-6 p-2 sm:p-4 lg:p-6 relative">
                 
-                {/* 📌 SIDEBAR */}
                 <aside className={`fixed inset-y-0 left-0 z-[70] w-64 bg-[#160d33]/95 lg:bg-[#160d33]/80 backdrop-blur-xl border-r border-purple-500/20 p-6 flex flex-col shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 lg:rounded-3xl lg:border lg:h-[calc(100vh-48px)] lg:top-6 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                     
-                    {/* MOBİL İÇİN KAPAT BUTONU */}
                     <button 
                         onClick={() => setIsMobileMenuOpen(false)} 
                         className="absolute top-6 right-6 lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:text-white hover:bg-red-500/20 border border-white/10 transition-colors"
@@ -164,11 +156,9 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
 
                 <div className="flex-1 flex flex-col gap-4 lg:gap-6 w-full max-w-full">
                     
-                    {/* 📌 ÜST HEADER */}
                     <header className="flex justify-between items-center bg-[#160d33]/50 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-purple-500/10 relative z-50">
                         
                         <div className="flex items-center gap-3 lg:gap-0">
-                            {/* 🌟 MOBİL HAMBURGER BUTONU */}
                             <button 
                                 onClick={() => setIsMobileMenuOpen(true)}
                                 className="lg:hidden p-2 rounded-lg bg-white/5 text-purple-400 border border-white/10 hover:bg-purple-500/20 transition-colors"
@@ -182,7 +172,6 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                         </div>
                         
                         <div className="flex items-center gap-2 sm:gap-4">
-                            {/* 🔍 Arama Çubuğu */}
                             <div className="relative" ref={searchRef}>
                                 <div className="bg-[#0f0822] border border-purple-500/20 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full flex items-center gap-2 transition-all duration-300 focus-within:border-purple-500/60 w-32 sm:w-48 lg:w-64 focus-within:w-48 sm:focus-within:w-64 lg:focus-within:w-96 shadow-inner">
                                     <span className="text-slate-400 text-xs sm:text-sm">🔍</span>
@@ -264,7 +253,6 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                 )}
                             </div>
 
-                            {/* Sağ Taraf Bildirim & Profil */}
                             <div className="flex gap-2 sm:gap-4 text-sm sm:text-lg items-center sm:ml-2 border-l border-white/10 pl-2 sm:pl-6">
                                 <Link href={route('profile.edit')} className="hover:scale-110 transition-transform text-white hidden sm:block">👤</Link>
                                 
@@ -272,7 +260,6 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                     <Link href={route('admin.users')} className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-600/20 border border-purple-500/30 transition-all shadow-lg shadow-purple-500/10 text-sm sm:text-base">⚙️</Link>
                                 )}
 
-                                {/* 🔔 BİLDİRİM DROPDOWN */}
                                 <div className="relative" ref={notifRef}>
                                     <div 
                                         onClick={() => setIsNotifOpen(!isNotifOpen)} 
@@ -292,7 +279,6 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                             </div>
                                             <div className="max-h-[50vh] overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-purple-500/30">
                                                 
-                                                {/* 🌟 YENİ: Bildirim Listesi Güncellendi (handleNotificationClick kullanılıyor) */}
                                                 {notificationsList.length > 0 ? (
                                                     notificationsList.map(n => (
                                                         <div 
