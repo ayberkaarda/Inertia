@@ -22,8 +22,8 @@ class DatabaseSeeder extends Seeder
         $this->call(BadgeSeeder::class);
 
         $user = User::updateOrCreate(
-            ['email' => 'ayberk@test.com'],
-            ['name' => 'Ayberk Arda', 'role' => 'admin', 'password' => bcrypt('123456')]
+            ['email' => 'inertia@test.com'],
+            ['name' => 'Ayberk Arda', 'role' => 'admin', 'password' => bcrypt('159951')]
         );
 
         // 🚀 TEMİZLİK
