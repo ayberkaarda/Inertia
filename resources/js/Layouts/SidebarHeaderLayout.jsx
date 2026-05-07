@@ -30,7 +30,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                     sprints: data.search_sprints || []
                 });
             })
-            .catch(error => console.log("Arama verileri yüklenemedi:", error));
+            .catch(error => console.log("Search data could not be loaded:", error));
     }, []);
 
     const [notificationsList, setNotificationsList] = useState(auth.user?.notifications || []);
@@ -44,7 +44,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
         if (auth.user?.id && window.Echo) {
             window.Echo.private(`user.${auth.user.id}`)
                 .listen('.NewNotification', (e) => {
-                    console.log("Yeni Bildirim Geldi:", e.notification);
+                    console.log("new notification :", e.notification);
                     setNotificationsList((prev) => [e.notification, ...prev]);
                 });
 
