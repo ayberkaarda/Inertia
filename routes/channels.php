@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Broadcast;
 use App\Models\Conversation;
 
+Broadcast::routes(['middleware' => ['web', 'auth']]);
+
 Broadcast::channel('chat.{conversationId}', function ($user, $conversationId) {
     $conversation = Conversation::find($conversationId);
     // Sadece bu konuşmanın içindeki iki kişiden biriyse kanala girmesine izin ver
