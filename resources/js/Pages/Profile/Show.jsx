@@ -1,6 +1,6 @@
 import SidebarHeader from '@/Layouts/SidebarHeaderLayout';
 import { Head, Link } from '@inertiajs/react';
-import cardBgSrc from '@/assets/images/card-bg.png';
+import cardBgSrc from '@/assets/images/card-bg.webp';
 
 // Varsayılan boş profil yapısı (Hata almamak için dışarıda tanımlıyoruz)
 const defaultProfile = {

@@ -1,7 +1,10 @@
 import { Link, router, Head, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import backgroundImageSrc from '@/assets/images/backgroundbg.png';
+
+// 🌟 HIZ TAVSİYESİ 1: Resmin formatını .webp olarak değiştirdik!
+// (Lütfen png dosyanı internetten webp'ye çevirip klasöre atmayı unutma)
+import backgroundImageSrc from '@/assets/images/backgroundbg.webp';
 
 export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }) {
     const { auth } = usePage().props; 
@@ -39,7 +42,6 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
         setNotificationsList(auth.user?.notifications || []);
     }, [auth.user?.notifications]);
 
-    // 🌟 EN KRİTİK NOKTA BURASI: Başındaki NOKTA (.) eklendi!
     useEffect(() => {
         if (auth.user?.id && window.Echo) {
             window.Echo.private(`user.${auth.user.id}`)
@@ -115,8 +117,14 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     };
 
     return (
-        <div className="min-h-screen font-sans text-slate-200 bg-cover bg-center bg-fixed" style={{ backgroundImage: `url(${backgroundImageSrc})` }}>
+        // 🌟 HIZ TAVSİYESİ 2: Sınıflara bg-[#0f0822] ekledik. Resim yüklenene kadar koyu siberpunk renk bekleyecek!
+        <div className="min-h-screen font-sans text-slate-200 bg-cover bg-center bg-fixed bg-[#0f0822]" style={{ backgroundImage: `url(${backgroundImageSrc})` }}>
             
+            {/* 🌟 HIZ TAVSİYESİ 3: Tarayıcıya bu resmi en yüksek öncelikle indirmesini söylüyoruz! */}
+            <Head title={pageTitle}>
+                <link rel="preload" as="image" href={backgroundImageSrc} />
+            </Head>
+
             {isMobileMenuOpen && (
                 <div 
                     className="fixed inset-0 bg-[#0f0822]/80 backdrop-blur-sm z-[60] lg:hidden"
