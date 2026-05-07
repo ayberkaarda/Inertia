@@ -24,7 +24,7 @@ export default function UserManagement({ auth, users, allBadges }) {
         postBadge(route('admin.badges.store'), { onSuccess: () => { resetBadge(); alert('Badge created successfully! 🏆'); } });
     };
 
-    // 🗑️ YENİ: Rozet Silme Fonksiyonu
+    // 🗑️ Rozet Silme Fonksiyonu
     const handleDeleteBadge = (badgeId) => {
         if (confirm('Are you sure you want to delete this badge? Users having this badge will lose it!')) {
             router.delete(route('admin.badges.destroy', badgeId));
@@ -93,7 +93,6 @@ export default function UserManagement({ auth, users, allBadges }) {
                 <div className="bg-[#160d33]/90 backdrop-blur-xl border border-purple-500/20 rounded-3xl p-8 shadow-2xl">
                     <h2 className="text-xl font-black text-white tracking-wide mb-6 uppercase">Manage Badges</h2>
                     
-                    {/* Create Badge Form */}
                     <form onSubmit={handleCreateBadge} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end mb-8 border-b border-white/5 pb-8">
                         <div>
                             <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Badge Name</label>
@@ -117,7 +116,6 @@ export default function UserManagement({ auth, users, allBadges }) {
                         </button>
                     </form>
 
-                    {/* Badge List with Delete Option */}
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                         {allBadges.map(badge => (
                             <div key={badge.id} className="relative group bg-[#110826] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 hover:border-purple-500/50 transition">
@@ -152,15 +150,25 @@ export default function UserManagement({ auth, users, allBadges }) {
                                 {users.map(user => (
                                     <tr key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                         <td className="py-4 px-4">
-                                            <div className="font-bold text-white">{user.name}</div>
+                                            <div className="font-bold text-white flex items-center gap-2">
+                                                {user.name}
+                                            </div>
                                             <div className="text-xs text-slate-400">{user.email}</div>
                                         </td>
+                                        
                                         <td className="py-4 px-4">
-                                            <select value={user.role} onChange={(e) => handleRoleChange(user.id, e.target.value)} disabled={user.id === auth.user.id} className="bg-[#110826] border border-purple-500/30 text-slate-200 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2">
+                                            {/* 🌟 KALKAN 1: Root hesabının ve kendi hesabının yetkisi değiştirilemez */}
+                                            <select 
+                                                value={user.role} 
+                                                onChange={(e) => handleRoleChange(user.id, e.target.value)} 
+                                                disabled={user.id === auth.user.id || user.email === 'inertia@test.com'} 
+                                                className="bg-[#110826] border border-purple-500/30 text-slate-200 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
                                                 <option value="user">User</option>
                                                 <option value="admin">Admin</option>
                                             </select>
                                         </td>
+                                        
                                         <td className="py-4 px-4">
                                             <div className="flex flex-wrap gap-2">
                                                 {user.badges.length > 0 ? user.badges.map(b => (
@@ -171,9 +179,16 @@ export default function UserManagement({ auth, users, allBadges }) {
                                                 )) : <span className="text-slate-500 text-xs">No Badges</span>}
                                             </div>
                                         </td>
-                                        <td className="py-4 px-4 text-right flex justify-end gap-3">
+                                        
+                                        <td className="py-4 px-4 text-right flex justify-end items-center gap-3">
                                             <button onClick={() => openBadgeEditor(user)} className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition">Edit Badges</button>
-                                            {user.id !== auth.user.id && (
+                                            
+                                            {/* 🌟 KALKAN 2: Root hesabıysa rozet göster, değilse silme butonunu göster */}
+                                            {user.email === 'inertia@test.com' ? (
+                                                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                                                    🛡️ ROOT
+                                                </span>
+                                            ) : user.id !== auth.user.id && (
                                                 <button onClick={() => handleDelete(user.id)} className="bg-red-500/20 text-red-400 hover:bg-red-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition">Delete</button>
                                             )}
                                         </td>

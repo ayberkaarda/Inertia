@@ -50,18 +50,18 @@ class UserManagementController extends Controller
         return back()->with('message', 'User created successfully! 🚀');
     }
 
-    // 🏆 YENİ: ROZET OLUŞTURMA (Kategori ve İkon Kaydı)
+    // 🏆 ROZET OLUŞTURMA (Kategori ve İkon Kaydı)
     public function storeBadge(Request $request)
     {
         Gate::authorize('manage-users');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'category' => 'required|in:frontend,backend,devops,general', // Migration ile tam uyumlu
+            'category' => 'required|in:frontend,backend,devops,general',
             'icon' => 'required|image|mimes:png,jpg,jpeg,svg|max:2048',
         ]);
 
-        // İkonu storage/app/public/badges klasörüne mermi gibi kaydet
+        // İkonu storage/app/public/badges klasörüne kaydet
         $path = $request->file('icon')->store('badges', 'public');
 
         Badge::create([
@@ -73,12 +73,17 @@ class UserManagementController extends Controller
         return back()->with('message', 'Badge created successfully! 🏆');
     }
 
-    // KULLANICI SİLME
+    // 🌟 KULLANICI SİLME (GÜÇLENDİRİLMİŞ KALKAN)
     public function destroy(User $user)
     {
         Gate::authorize('manage-users');
 
-        // Adminin yanlışlıkla kendini silmesini engelleyelim
+        // 1. ROOT KALKANI: inertia@test.com ASLA silinemez!
+        if ($user->email === 'inertia@test.com') {
+            return redirect()->back()->with('error', 'System Override: owner role cannot be deleted!');
+        }
+
+        // 2. KENDİNİ KORUMA: Admin yanlışlıkla kendini silemez!
         if ($user->id === Auth::id()) {
             return redirect()->back()->with('error', 'You cannot delete yourself!');
         }
@@ -87,32 +92,39 @@ class UserManagementController extends Controller
 
         return redirect()->back()->with('message', 'User deleted successfully.');
     }
+
     public function destroyBadge(Badge $badge)
-    {
+{
     Gate::authorize('manage-users');
 
-    // Sunucudan ikon dosyasını da silelim ki çöp birikmesin
-    if ($badge->icon && \Storage::disk('public')->exists($badge->icon)) {
-        \Storage::disk('public')->delete($badge->icon);
+    // Sunucudan ikon dosyasını silelim (Baştaki \ işaretini kaldırdık)
+    if ($badge->icon && Storage::disk('public')->exists($badge->icon)) {
+        Storage::disk('public')->delete($badge->icon);
     }
 
     $badge->delete();
 
     return back()->with('message', 'Badge deleted successfully.');
-    }
+}
 
-    // Kullanıcı Rolünü Güncelle
+    // 🌟 KULLANICI ROLÜNÜ GÜNCELLE (GÜÇLENDİRİLMİŞ KALKAN)
     public function updateRole(Request $request, User $user)
     {
         Gate::authorize('manage-users');
         
         $request->validate(['role' => 'required|in:admin,user']);
+
+        // ROOT KALKANI: inertia@test.com hesabının yetkisi ASLA düşürülemez!
+        if ($user->email === 'inertia@test.com' && $request->role !== 'admin') {
+            return redirect()->back()->with('error', 'System Override: owner role cannot be changed!');
+        }
+
         $user->update(['role' => $request->role]);
 
         return redirect()->back()->with('message', 'User role updated successfully.');
     }
 
-    // Kullanıcıya Rozet Ekle/Çıkar (Pivot Tablo Senkronizasyonu)
+    // Kullanıcıya Rozet Ekle/Çıkar
     public function syncBadges(Request $request, User $user)
     {
         Gate::authorize('manage-users');
@@ -125,7 +137,7 @@ class UserManagementController extends Controller
         $syncData = [];
         if ($request->has('badge_ids')) {
             foreach ($request->badge_ids as $id) {
-                // Senin migration'daki expires_at alanını 60 gün sonrasına kuruyoruz
+                // expires_at alanını 60 gün sonrasına kuruyoruz
                 $syncData[$id] = [
                     'last_earned_at' => now(), 
                     'expires_at' => now()->addDays(60)
