@@ -264,7 +264,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                             <div className="flex gap-2 sm:gap-4 text-sm sm:text-lg items-center sm:ml-2 border-l border-white/10 pl-2 sm:pl-6">
                                 <Link href={route('profile.edit')} className="hover:scale-110 transition-transform text-white hidden sm:block">👤</Link>
                                 
-                                {auth.user?.role === 'admin' && (
+                                {(auth.user?.role === 'admin' || auth.user?.role === 'observer') && (
                                     <Link href={route('admin.users')} className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-600/20 border border-purple-500/30 transition-all shadow-lg shadow-purple-500/10 text-sm sm:text-base">⚙️</Link>
                                 )}
 
