@@ -5,7 +5,7 @@ import Sidebarheader from '@/Layouts/SidebarHeaderLayout';
 export default function Inbox({ auth, conversations }) {
     return (
         <Sidebarheader
-            pageTitle="Encrypted Comms (Inbox)"
+            pageTitle="Inbox"
         >
             <Head title="Inbox" />
 
@@ -22,10 +22,10 @@ export default function Inbox({ auth, conversations }) {
                     {/* Başlık Alanı */}
                     <div className="p-6 border-b border-purple-500/20 flex justify-between items-center bg-[#0f0822]/50 relative z-10">
                         <h3 className="text-sm font-black text-white tracking-widest uppercase flex items-center gap-3 drop-shadow-md">
-                            <span className="text-purple-500">💬</span> SOHBET GEÇMİŞİ
+                            <span className="text-purple-500">💬</span> Chat History
                         </h3>
                         <span className="text-xs font-bold text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-xl border border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-                            {conversations.length} Aktif Bağlantı
+                            {conversations.length} active conversations
                         </span>
                     </div>
 
@@ -39,8 +39,8 @@ export default function Inbox({ auth, conversations }) {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                     </svg>
                                 </div>
-                                <p className="text-slate-300 font-bold tracking-wide">Ağda henüz aktif bir iletişim bulunamadı.</p>
-                                <p className="text-slate-500 text-sm mt-2">Profillere gidip veri aktarımına başla!</p>
+                                <p className="text-slate-300 font-bold tracking-wide">No active conversations</p>
+                                <p className="text-slate-500 text-sm mt-2">Start a new conversation to get started.</p>
                             </div>
                         ) : (
                             // Mesajları döngüye al
