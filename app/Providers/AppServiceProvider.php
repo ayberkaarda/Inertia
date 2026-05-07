@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Auth\Notifications\ResetPassword; // 🎯 EKLENDİ
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use App\Models\Card;
 use App\Models\User;
@@ -14,6 +14,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // 1. Sprint Oluşturma İzni (Sadece Admin)
+        // Not: Observer görebilir ama oluşturamaz, o yüzden burası admin kalabilir.
         Gate::define('create-sprint', function (User $user) {
             return $user->isAdmin();
         });
@@ -23,30 +24,35 @@ class AppServiceProvider extends ServiceProvider
             return $user->isAdmin();
         });
 
-        // 3. Yetkileri ve Rozetleri Yönetme Sayfası İzni (Sadece Admin)
+        // 3. Yetkileri ve Rozetleri Yönetme Sayfası İzni (Admin VEYA Observer)
+        // 🌟 DEĞİŞTİRİLDİ: Observer bu sayfaya GİREBİLMELİ ama Middleware sayesinde işlem yapamayacak.
         Gate::define('manage-users', function (User $user) {
-            return $user->isAdmin();
+            return $user->isAdmin() || $user->role === 'observer';
         });
 
-        // 4. Görev (Task) Oluşturma İzni (Herkes)
+        // 4. Görev (Task) Oluşturma İzni (Admin veya User - Observer hariç)
+        // 🌟 DEĞİŞTİRİLDİ: Observer'ın görev oluşturmasını engellemek için kısıtladık.
         Gate::define('create-task', function (User $user) {
-            return true; 
+            return $user->role !== 'observer'; 
         });
+
         // 5. Görevi Düzenleme İzni (Sadece Admin VEYA Görevi Oluşturan Kişi)
         Gate::define('edit-task', function (User $user, Card $card) {
-            return $user->isAdmin() || $user->id === $card->user_id;
+            return ($user->isAdmin() || $user->id === $card->user_id) && $user->role !== 'observer';
         });
 
         // 6. Görevi Silme İzni (Sadece Admin VEYA Görevi Oluşturan Kişi)
         Gate::define('delete-task', function (User $user, Card $card) {
-            return $user->isAdmin() || $user->id === $card->user_id;
+            return ($user->isAdmin() || $user->id === $card->user_id) && $user->role !== 'observer';
         });
 
-        // 🌟 YENİ: Görevi Tamamlama İzni (Herkes) 🌟
+        // 7. Görevi Tamamlama İzni (Observer Hariç Herkes)
         Gate::define('complete-task', function (User $user) {
-            return true; // Herkes herhangi bir görevi tamamlayabilir
+            return $user->role !== 'observer'; 
         });
-		ResetPassword::toMailUsing(function ($notifiable, $token) {
+
+        // Şifre Sıfırlama Mail Yapılandırması
+        ResetPassword::toMailUsing(function ($notifiable, $token) {
             return (new MailMessage)
                 ->subject('Password Reset Request')
                 ->greeting('Hello!')
