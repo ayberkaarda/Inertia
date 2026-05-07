@@ -1,6 +1,6 @@
 import { Link, router, Head, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios'; // 🎯 EKLENDİ: Verileri arka planda çekmek için
+import axios from 'axios';
 import backgroundImageSrc from '@/assets/images/backgroundbg.png';
 
 export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }) {
@@ -13,7 +13,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     const searchRef = useRef(null);
     const notifRef = useRef(null);
 
-    // 🎯 2. YENİ: ARAMA VERİLERİNİ TUTACAĞIMIZ DEPO
+    // 2. ARAMA VERİLERİNİ TUTACAĞIMIZ DEPO
     const [searchData, setSearchData] = useState({
         workspaces: [],
         tasks: [],
@@ -21,10 +21,8 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
         sprints: []
     });
 
-    // 🎯 3. YENİ: BİLEŞEN YÜKLENDİĞİNDE CEPHANELİĞİ API'DEN DOLDUR
+    // 3. BİLEŞEN YÜKLENDİĞİNDE CEPHANELİĞİ API'DEN DOLDUR
     useEffect(() => {
-        // NOT: Buradaki URL senin route yapına göre '/api/dashboard-stats' veya '/dashboard-stats' olabilir.
-        // Network sekmesinde verinin geldiği URL hangisiyse onu yazmalısın. Ben şimdilik '/dashboard-stats' yazdım.
         axios.get('/dashboard-stats') 
             .then(response => {
                 const data = response.data;
@@ -51,7 +49,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // 🔍 SABİT SAYFALAR
+    // SABİT SAYFALAR
     const pages = [
         { name: 'Dashboard', url: '/dashboard', icon: '🏠' },
         { name: 'Active Sprints', url: route('sprints.index'), icon: '🏃' },
@@ -59,9 +57,10 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
         { name: 'Ai Insights', url: route('ai.index'), icon: '🤖' },
         { name: 'Talent Matrix', url: route('talent-matrix.index'), icon: '🌐' },
         { name: 'Profile Settings', url: route('profile.edit'), icon: '👤' },
+        { name: 'Inbox', url: '/inbox', icon: '💬' },
     ];
 
-    // 🔍 FİLTRELEME MANTIĞI (Boş değerlere karşı (null) güvenlik eklendi)
+    // FİLTRELEME MANTIĞI
     const query = searchTerm.toLowerCase();
     const filteredPages = pages.filter(p => p.name.toLowerCase().includes(query));
     const filteredWorkspaces = searchData.workspaces.filter(w => (w.name || '').toLowerCase().includes(query));
@@ -72,7 +71,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     const hasNoResults = filteredPages.length === 0 && filteredWorkspaces.length === 0 && 
                          filteredTasks.length === 0 && filteredUsers.length === 0 && filteredSprints.length === 0;
 
-    // 🔔 Bildirim Fonksiyonları
+    // Bildirim Fonksiyonları
     const markAsRead = (id) => {
         router.post(`/notifications/${id}/read`, {}, { preserveScroll: true });
     };
@@ -97,8 +96,13 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                         <Link href={route('ai.index')} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${route().current('ai.*') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>🤖</span> Ai Insights</Link>
                         <Link href={route('workspaces.index')} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${route().current('workspaces.*') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>🖥️</span> Workspaces</Link>
                         <Link href={route('talent-matrix.index')} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${route().current('talent-matrix.*') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>🌐</span> Talent Matrix</Link>
+                        
                         <div className="mt-8 mb-2 text-xs font-bold text-slate-500 tracking-widest uppercase pl-4">Account</div>
                         <Link href={route('profile.edit')} className="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition"><span>👤</span> Profile</Link>
+                        
+                        {/* 🌟 YENİ: INBOX BUTONU BURAYA EKLENDİ */}
+                        <Link href="/inbox" className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${typeof window !== 'undefined' && window.location.pathname.includes('/inbox') || window.location.pathname.includes('/chat') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>💬</span> Inbox</Link>
+                        
                         <Link href={route('logout')} method="post" as="button" className="w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition"><span>🚪</span> Sign Out</Link>
                     </nav>
                 </aside>
