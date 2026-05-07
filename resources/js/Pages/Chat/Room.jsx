@@ -146,7 +146,7 @@ export default function Room({ auth, conversation, messages, receiver }) {
                                 type="text"
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Terminal'e mesaj yaz..."
+                                placeholder="Type your message..."
                                 className="flex-1 bg-white/5 border border-white/10 text-slate-200 rounded-xl px-5 py-4 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all placeholder-slate-600 text-sm shadow-inner"
                             />
                             <button 

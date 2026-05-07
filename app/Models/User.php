@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Card;
+use App\Models\Notification; // 🌟 YENİ: Kendi bildirim modelimizi ekledik
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -64,6 +65,12 @@ class User extends Authenticatable
     public function cards(): BelongsToMany
     {
         return $this->belongsToMany(Card::class, 'card_user');
+    }
+
+    // 🌟 YENİ: Kullanıcının Bildirimleri (Kendi özel tablomuzdan çeker, en yeniler en üstte)
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class)->orderBy('created_at', 'desc');
     }
 
     // KULLANICI YETKİ KONTROLLERİ

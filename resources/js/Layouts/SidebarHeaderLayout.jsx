@@ -36,9 +36,31 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
             .catch(error => console.log("Arama verileri yüklenemedi:", error));
     }, []);
 
-    // Bildirimler
-    const notifications = auth.user?.notifications || [];
-    const unreadCount = notifications.filter(n => n.read_at === null).length;
+    // 🌟 BİLDİRİMLERİ DİNAMİK STATE İÇİNE ALIYORUZ
+    const [notificationsList, setNotificationsList] = useState(auth.user?.notifications || []);
+
+    // Sayfalar arası geçişlerde auth güncellenirse listeyi de güncelle
+    useEffect(() => {
+        setNotificationsList(auth.user?.notifications || []);
+    }, [auth.user?.notifications]);
+
+    // 🌟 REVERB (WEBSOCKET) İLE GERÇEK ZAMANLI BİLDİRİM DİNLEYİCİSİ
+    useEffect(() => {
+        if (auth.user?.id && window.Echo) {
+            window.Echo.private(`user.${auth.user.id}`)
+                .listen('NewNotification', (e) => {
+                    // Yeni bildirimi alıp listenin en başına (üstüne) ekliyoruz!
+                    setNotificationsList((prev) => [e.notification, ...prev]);
+                });
+
+            return () => {
+                window.Echo.leave(`user.${auth.user.id}`);
+            };
+        }
+    }, [auth.user?.id]);
+
+    // Okunmamış sayısını artık dinamik listemizden alıyoruz
+    const unreadCount = notificationsList.filter(n => n.read_at === null).length;
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -100,8 +122,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                         <div className="mt-8 mb-2 text-xs font-bold text-slate-500 tracking-widest uppercase pl-4">Account</div>
                         <Link href={route('profile.edit')} className="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition"><span>👤</span> Profile</Link>
                         
-                        {/* 🌟 YENİ: INBOX BUTONU BURAYA EKLENDİ */}
-                        <Link href="/inbox" className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${typeof window !== 'undefined' && window.location.pathname.includes('/inbox') || window.location.pathname.includes('/chat') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>💬</span> Inbox</Link>
+                        <Link href="/inbox" className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${typeof window !== 'undefined' && window.location.pathname.includes('/inbox') || typeof window !== 'undefined' && window.location.pathname.includes('/chat') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>💬</span> Inbox</Link>
                         
                         <Link href={route('logout')} method="post" as="button" className="w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition"><span>🚪</span> Sign Out</Link>
                     </nav>
@@ -217,6 +238,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                         className="hover:scale-110 transition-transform cursor-pointer relative text-white bg-white/5 p-2 rounded-full border border-white/10"
                                     >
                                         🔔
+                                        {/* 🌟 Okunmamış bildirim varsa kırmızı lamba yanar! */}
                                         {unreadCount > 0 && (
                                             <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#160d33] animate-pulse"></span>
                                         )}
@@ -229,8 +251,10 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                                 <button onClick={clearAll} className="text-[9px] font-bold text-purple-400 hover:text-purple-300 uppercase">Mark All Read</button>
                                             </div>
                                             <div className="max-h-80 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-purple-500/30">
-                                                {notifications.length > 0 ? (
-                                                    notifications.map(n => (
+                                                
+                                                {/* 🌟 STATİK DEĞİL, DİNAMİK LİSTEMİZİ (notificationsList) KULLANIYORUZ */}
+                                                {notificationsList.length > 0 ? (
+                                                    notificationsList.map(n => (
                                                         <div 
                                                             key={n.id} 
                                                             onClick={() => markAsRead(n.id)}

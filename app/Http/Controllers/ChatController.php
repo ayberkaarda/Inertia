@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Models\Notification; // 🌟 YENİ EKLENDİ
 use App\Events\MessageSent;
+use App\Events\NewNotification; // 🌟 YENİ EKLENDİ
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -80,17 +82,36 @@ class ChatController extends Controller
     {
         $request->validate(['body' => 'required|string']);
 
+        $userId = Auth::id();
+
         // 1. Mesajı veritabanına kaydet (Saat otomatik olarak 'created_at' içine yazılır)
         $message = $conversation->messages()->create([
-            'sender_id' => Auth::id(),
+            'sender_id' => $userId,
             'body' => $request->body,
         ]);
 
         // 2. Modeldeki sender bilgisini yükle ki beyaz ekran yemesinler
         $message->load('sender');
 
-        // 3. REVERB İLE KARŞI TARAFA FIRLAT! (Gerçek zamanlı büyü)
+        // 3. REVERB İLE MESAJI KARŞI TARAFA FIRLAT! (Gerçek zamanlı sohbet büyüsü)
         broadcast(new MessageSent($message))->toOthers();
+
+        // 🌟 4. YENİ: BİLDİRİM (NOTIFICATION) OLUŞTUR VE BİLDİRİM ÇANINA FIRLAT 🌟
+        
+        // Karşı tarafın ID'sini bulalım
+        $receiverId = $conversation->user_one_id === $userId 
+                        ? $conversation->user_two_id 
+                        : $conversation->user_one_id;
+
+        // Veritabanına bildirimi yazalım
+        $notification = Notification::create([
+            'user_id' => $receiverId,
+            'type' => 'message',
+            'message' => Auth::user()->name . " sent you an encrypted message."
+        ]);
+
+        // Reverb ile karşı tarafın header'ındaki zili titreştirelim!
+        broadcast(new NewNotification($notification))->toOthers();
 
         // React tarafında (axios) işlemi için gönderilen mesajı geri dön
         return response()->json($message); 
