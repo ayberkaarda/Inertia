@@ -28,7 +28,7 @@ export default function Show({ auth, userProfile }) {
 
     return (
         <SidebarHeader auth={auth} pageTitle={`${profile.name} - Profile Overview`}>
-            <Head title={`${profile.name} - Profile`} />
+            <Head title={`${profile.name} - Profile`}><link rel="preload" as="image" href={cardBgSrc} /></Head>
 
             <div className="flex flex-col gap-6 pb-10 max-w-7xl mx-auto">
                 

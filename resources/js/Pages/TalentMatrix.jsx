@@ -26,7 +26,7 @@ export default function TalentMatrix({
 
     return (
         <SidebarHeader auth={auth} pageTitle="Talent Matrix">
-            <Head title="Talent Matrix" />
+            <Head title="Talent Matrix"><link rel="preload" as="image" href={cardBgSrc} /></Head>
 
             {/* 🌟 MOBİL UYUM: Ana padding ve gap kısıldı */}
             <div className="flex flex-col gap-4 sm:gap-6 pb-6 sm:pb-10 px-1 sm:px-0">
