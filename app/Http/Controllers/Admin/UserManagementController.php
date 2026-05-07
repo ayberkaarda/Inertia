@@ -37,7 +37,7 @@ class UserManagementController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
-            'role' => 'required|string|in:user,admin',
+            'role' => 'required|string|in:user,admin,observer',
         ]);
 
         User::create([
@@ -112,7 +112,7 @@ class UserManagementController extends Controller
     {
         Gate::authorize('manage-users');
         
-        $request->validate(['role' => 'required|in:admin,user']);
+        $request->validate(['role' => 'required|in:admin,user,observer']);
 
         // ROOT KALKANI: inertia@test.com hesabının yetkisi ASLA düşürülemez!
         if ($user->email === 'inertia@test.com' && $request->role !== 'admin') {
