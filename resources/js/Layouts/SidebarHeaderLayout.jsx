@@ -84,8 +84,35 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
     const hasNoResults = filteredPages.length === 0 && filteredWorkspaces.length === 0 && 
                          filteredTasks.length === 0 && filteredUsers.length === 0 && filteredSprints.length === 0;
 
-    const markAsRead = (id) => {
-        router.post(`/notifications/${id}/read`, {}, { preserveScroll: true });
+    // 🌟 YENİ: Gelişmiş Bildirim Tıklama Yöneticisi (Işınlanma)
+    const handleNotificationClick = (n) => {
+        // 1. Arka planda okundu yap
+        if (!n.read_at) {
+            axios.post(`/notifications/${n.id}/read`).then(() => {
+                setNotificationsList(prev => prev.map(item => item.id === n.id ? { ...item, read_at: new Date().toISOString() } : item));
+            });
+        }
+
+        // 2. Mesajın içindeki JSON'u çöz ve linke uç
+        try {
+            const parsedData = JSON.parse(n.message);
+            if (parsedData.link) {
+                setIsNotifOpen(false); // Dropdown'u kapat
+                router.visit(parsedData.link); // Odaya git
+            }
+        } catch (e) {
+            // Eğer JSON değilse, sadece okundu yap
+        }
+    };
+
+    // 🌟 YENİ: Mesajı Güvenli Basıcı (JSON'ı gizler)
+    const getNotifText = (msg) => {
+        try {
+            const parsed = JSON.parse(msg);
+            return parsed.text || msg;
+        } catch (e) {
+            return msg; // Düz metinse direkt göster
+        }
     };
 
     const clearAll = () => {
@@ -105,7 +132,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
 
             <div className="max-w-[1600px] mx-auto flex lg:gap-6 p-2 sm:p-4 lg:p-6 relative">
                 
-                {/* 📌 SIDEBAR (Hem Masaüstü Hem Mobil İçin Uyarlandı) */}
+                {/* 📌 SIDEBAR */}
                 <aside className={`fixed inset-y-0 left-0 z-[70] w-64 bg-[#160d33]/95 lg:bg-[#160d33]/80 backdrop-blur-xl border-r border-purple-500/20 p-6 flex flex-col shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 lg:rounded-3xl lg:border lg:h-[calc(100vh-48px)] lg:top-6 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                     
                     {/* MOBİL İÇİN KAPAT BUTONU */}
@@ -137,7 +164,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
 
                 <div className="flex-1 flex flex-col gap-4 lg:gap-6 w-full max-w-full">
                     
-                    {/* 📌 ÜST HEADER (Mobilde Arama Çubuğu Daralır, Hamburger Menü Eklenir) */}
+                    {/* 📌 ÜST HEADER */}
                     <header className="flex justify-between items-center bg-[#160d33]/50 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-purple-500/10 relative z-50">
                         
                         <div className="flex items-center gap-3 lg:gap-0">
@@ -264,16 +291,18 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                                 <button onClick={clearAll} className="text-[9px] font-bold text-purple-400 hover:text-purple-300 uppercase">Mark All Read</button>
                                             </div>
                                             <div className="max-h-[50vh] overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-purple-500/30">
+                                                
+                                                {/* 🌟 YENİ: Bildirim Listesi Güncellendi (handleNotificationClick kullanılıyor) */}
                                                 {notificationsList.length > 0 ? (
                                                     notificationsList.map(n => (
                                                         <div 
                                                             key={n.id} 
-                                                            onClick={() => markAsRead(n.id)}
+                                                            onClick={() => handleNotificationClick(n)}
                                                             className={`flex gap-3 p-3 rounded-xl mb-1 cursor-pointer transition-all ${n.read_at ? 'opacity-40' : 'bg-white/5 hover:bg-white/10 border border-white/5'}`}
                                                         >
                                                             <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${n.read_at ? 'bg-slate-600' : 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]'}`}></div>
                                                             <div className="flex flex-col gap-0.5 text-left overflow-hidden">
-                                                                <p className="text-xs text-slate-200 leading-snug">{n.data?.message || n.message}</p>
+                                                                <p className="text-xs text-slate-200 leading-snug">{getNotifText(n.message)}</p>
                                                                 <span className="text-[9px] font-bold text-slate-500 uppercase">{n.created_at_human || 'now'}</span>
                                                             </div>
                                                         </div>
@@ -281,6 +310,7 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                                                 ) : (
                                                     <div className="py-10 text-center text-slate-500 italic text-xs">No active logs detected.</div>
                                                 )}
+
                                             </div>
                                         </div>
                                     )}
