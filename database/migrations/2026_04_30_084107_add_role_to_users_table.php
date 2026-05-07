@@ -9,9 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // 'admin' veya 'user' tutacak sütun. Varsayılan herkes 'user' başlar.
-            $table->string('role')->default('user')->after('password'); 
-        });
+        // 'admin', 'user' veya 'observer' tutacak sütun.
+        // Gözlemci yetkisini buraya tanımlıyoruz.
+        $table->string('role')->default('user')->after('password'); 
+    });
     }
 
     public function down(): void
