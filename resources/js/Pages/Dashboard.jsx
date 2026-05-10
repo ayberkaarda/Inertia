@@ -241,10 +241,23 @@ export default function Dashboard({ auth }) {
                         </div>
                         
                         {/* Bottleneck Alert */}
-                        <div className="bg-[#160d33]/80 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-red-500/20 shadow-2xl">
-                            <div className="flex items-center gap-2 sm:gap-3 text-red-500 mb-3 sm:mb-4 font-black text-[10px] sm:text-xs uppercase tracking-widest"><span className="animate-ping w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500"></span> Resource Alerts</div>
-                            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">Detected <span className="text-white font-bold">{stats.bottleneck_alerts}</span> complexity bottlenecks. Risk: <span className="text-red-400 font-bold">Moderate</span>.</p>
-                        </div>
+                        <div className={`bg-[#160d33]/80 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-3xl border shadow-2xl transition-all duration-500 ${
+                        stats.bottleneck_alerts === 0 ? 'border-emerald-500/20' : 
+                        stats.bottleneck_alerts <= 2 ? 'border-amber-500/20' : 'border-red-500/20'}`}>
+                        <div className={`flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 font-black text-[10px] sm:text-xs uppercase tracking-widest ${
+                        stats.bottleneck_alerts === 0 ? 'text-emerald-500' : 
+                        stats.bottleneck_alerts <= 2 ? 'text-amber-500' : 'text-red-500'}`}>
+                        <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${stats.bottleneck_alerts === 0 ? 'bg-emerald-500' : 'bg-current animate-ping'}`}></span> {stats.bottleneck_alerts === 0 ? 'System Status' : 'Resource Alerts'}</div>
+                        <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
+                        {stats.bottleneck_alerts === 0 ? (
+            <>Neural pathways are <span className="text-emerald-400 font-bold">Clear</span>. All resources are operating at peak efficiency.</>
+        ) : stats.bottleneck_alerts <= 2 ? (
+            <>Detected <span className="text-white font-bold">{stats.bottleneck_alerts}</span> minor friction points. Risk: <span className="text-amber-400 font-bold">Stable</span>.</>
+        ) : (
+            <>Detected <span className="text-white font-bold">{stats.bottleneck_alerts}</span> complexity bottlenecks. Risk: <span className="text-red-400 font-bold">Critical</span>.</>
+        )}
+    </p>
+</div>
                     </div>
                 </div>
             </div>
