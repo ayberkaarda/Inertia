@@ -166,7 +166,7 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
                         <form onSubmit={handleCreateSkill} className="flex flex-col gap-4 mb-6">
                             <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0">Skill Name</label>
                             <div className="flex gap-2">
-                                <input disabled={isObserver} type="text" value={skillData.name} onChange={e => setSkillData('name', e.target.value)} className="bg-[#0f0822] border border-emerald-500/30 text-white text-sm rounded-xl flex-1 p-3 focus:ring-emerald-500" placeholder="e.g. Laravel" />
+                                <input disabled={isObserver} type="text" value={skillData.name} onChange={e => setSkillData('name', e.target.value)} className="bg-[#0f0822] border border-emerald-500/30 text-white text-sm rounded-xl flex-1 p-3 focus:ring-emerald-500" placeholder="e.g. Communication, Leadership" />
                                 <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 rounded-xl text-xs font-black transition">Add</button>
                             </div>
                         </form>
