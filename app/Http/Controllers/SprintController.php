@@ -94,15 +94,14 @@ class SprintController extends Controller
         $card->list_id = 1; 
         $card->sprint_id = $sprint->id;
         
-        // 🌟 ÇÖZÜM: BÜYÜK İHTİMALLE EKSİK KALAN VE HATAYA SEBEP OLAN ALANLAR 🌟
-        $card->user_id = Auth::id(); // Görevi oluşturan kişi
-        $card->position = 0;         // Kart sıralaması
-        $card->description = '';     // Boş açıklama
+        // 🌟 ÇÖZÜM: user_id sütununu sildik. Sadece boş olmaması gereken diğer sütunları yolluyoruz.
+        $card->position = 0;         
+        $card->description = '';     
         
         $card->save(); 
 
-        // Görevi oluşturan kişiyi ara tabloya da (katılımcı olarak) ekliyoruz
-        $card->users()->syncWithoutDetaching([Auth::id()]);
+        // 🌟 KULLANICIYI DOĞRU YERE BAĞLIYORUZ: Görevi oluşturan kişiyi pivot (ara) tabloya ekliyoruz.
+        $card->users()->syncWithoutDetaching([\Illuminate\Support\Facades\Auth::id()]);
 
         // SPRINT'İN YETENEKLERİNİ GÖREVE MİRAS BIRAKIYORUZ
         if (!empty($sprint->required_skill)) {
