@@ -70,9 +70,6 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                                             {employee.growth} Skill Gain
                                         </span>
                                         </td>
-                                        <td className="py-3 sm:py-4 text-right pr-4">
-                                            <button className="text-[10px] sm:text-[11px] font-bold text-slate-500 hover:text-purple-400 transition-colors uppercase">Edit</button>
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -83,7 +80,7 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                 {/* 📌 Projects Insights (Gerçek Veri) */}
                 <div className="bg-[#160d33]/80 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-purple-500/20 shadow-2xl flex flex-col relative overflow-hidden">
                     <div className="flex justify-between items-center mb-4 sm:mb-6 relative z-10">
-                        <h3 className="text-white font-black text-base sm:text-lg tracking-tight uppercase">Project Confidence Insights</h3>
+                        <h3 className="text-white font-black text-base sm:text-lg tracking-tight uppercase">Project Insights</h3>
                         <span className="text-slate-500 cursor-pointer hover:text-white text-lg sm:text-xl">⋮</span>
                     </div>
 
