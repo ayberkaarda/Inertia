@@ -73,6 +73,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users');
     Route::put('/admin/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('admin.users.role');
     Route::post('/admin/users/{user}/badges', [UserManagementController::class, 'syncBadges'])->name('admin.users.badges');
+    
+    // 🌟 YENİ ROTA EKLENDİ: ADMİN YETENEK (SKILL) GÜNCELLEMESİ
+    Route::post('/admin/users/{user}/skills', [UserManagementController::class, 'syncSkills'])->name('admin.users.skills');
+    
     Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
     Route::post('/admin/badges', [BadgeController::class, 'store'])->name('admin.badges.store');
     Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');

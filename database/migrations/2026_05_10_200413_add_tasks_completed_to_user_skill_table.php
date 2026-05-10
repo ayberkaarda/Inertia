@@ -12,8 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('user_skill', function (Blueprint $table) {
-        $table->integer('tasks_completed')->default(0); // Görev sayacı
-    });
+            // Eğer sütun yoksa ekle (hata vermemesi için güvenlik önlemi)
+            if (!Schema::hasColumn('user_skill', 'tasks_completed')) {
+                $table->integer('tasks_completed')->default(0)->after('proficiency_level');
+            }
+        });
     }
 
     /**
@@ -22,7 +25,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('user_skill', function (Blueprint $table) {
-            //
+            $table->dropColumn('tasks_completed');
         });
     }
 };

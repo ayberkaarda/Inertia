@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\Badge;
+use App\Models\Skill; // 🌟 EKLENDİ
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -19,12 +20,15 @@ class UserManagementController extends Controller
         // 🔒 Bu sayfayı sadece Admin görebilir
         Gate::authorize('manage-users');
 
-        $users = User::with('badges')->get();
+        // 🌟 GÜNCELLEME: Kullanıcıların sahip olduğu yetenekleri (skills) de çekiyoruz
+        $users = User::with(['badges', 'skills'])->get();
         $allBadges = Badge::all();
+        $allSkills = Skill::all(); // 🌟 YENİ: React'e yollanacak tüm yetenekler
 
         return Inertia::render('Admin/UserManagement', [
             'users' => $users,
-            'allBadges' => $allBadges
+            'allBadges' => $allBadges,
+            'allSkills' => $allSkills // 🌟 YENİ
         ]);
     }
 
@@ -94,18 +98,18 @@ class UserManagementController extends Controller
     }
 
     public function destroyBadge(Badge $badge)
-{
-    Gate::authorize('manage-users');
+    {
+        Gate::authorize('manage-users');
 
-    // Sunucudan ikon dosyasını silelim (Baştaki \ işaretini kaldırdık)
-    if ($badge->icon && Storage::disk('public')->exists($badge->icon)) {
-        Storage::disk('public')->delete($badge->icon);
+        // Sunucudan ikon dosyasını silelim (Baştaki \ işaretini kaldırdık)
+        if ($badge->icon && Storage::disk('public')->exists($badge->icon)) {
+            Storage::disk('public')->delete($badge->icon);
+        }
+
+        $badge->delete();
+
+        return back()->with('message', 'Badge deleted successfully.');
     }
-
-    $badge->delete();
-
-    return back()->with('message', 'Badge deleted successfully.');
-}
 
     // 🌟 KULLANICI ROLÜNÜ GÜNCELLE (GÜÇLENDİRİLMİŞ KALKAN)
     public function updateRole(Request $request, User $user)
@@ -148,5 +152,35 @@ class UserManagementController extends Controller
         $user->badges()->sync($syncData);
 
         return redirect()->back()->with('message', 'User badges updated successfully.');
+    }
+
+    // 🌟 YENİ: YETENEK (SKILL) VE LEVEL BELİRLEME METODU
+    public function syncSkills(Request $request, User $user)
+    {
+        Gate::authorize('manage-users');
+
+        // React'ten gelen { skills: [{id: 1, level: 3}, ...] } formatını doğruluyoruz
+        $request->validate([
+            'skills' => 'array',
+            'skills.*.id' => 'required|exists:skills,id',
+            'skills.*.level' => 'required|integer|min:1|max:100',
+        ]);
+
+        $syncData = [];
+        if ($request->has('skills')) {
+            foreach ($request->skills as $skillData) {
+                // Her eklenen yeteneğe sistem tarafından default 30 gün verilir (Paslanma motoru için)
+                $syncData[$skillData['id']] = [
+                    'proficiency_level' => $skillData['level'],
+                    'tasks_completed' => 0, // Yeni eklendiğinde XP sıfırdan başlar
+                    'expires_at' => now()->addDays(30)
+                ];
+            }
+        }
+
+        // sync: Seçilmeyenleri siler, seçilenleri ekler veya level/süresini günceller.
+        $user->skills()->sync($syncData);
+
+        return redirect()->back()->with('message', 'User skills and levels updated successfully.');
     }
 }

@@ -2,9 +2,14 @@ import React, { useState } from 'react';
 import { Head, router, Link, useForm } from '@inertiajs/react';
 import SidebarHeader from '@/Layouts/SidebarHeaderLayout';
 
-export default function UserManagement({ auth, users, allBadges }) {
+// 🌟 allSkills prop'u eklendi
+export default function UserManagement({ auth, users, allBadges, allSkills = [] }) {
     const [editingUser, setEditingUser] = useState(null);
     const [selectedBadges, setSelectedBadges] = useState([]);
+
+    // 🌟 Yetenek (Skill) Modalı için State'ler
+    const [editingUserSkills, setEditingUserSkills] = useState(null);
+    const [selectedSkills, setSelectedSkills] = useState({}); // { skillId: level } formatında tutar
 
     // 🛡️ Gözlemci Kontrolü
     const isObserver = auth.user.role === 'observer';
@@ -62,6 +67,7 @@ export default function UserManagement({ auth, users, allBadges }) {
         });
     };
 
+    // --- ROZET (BADGE) YÖNETİMİ ---
     const openBadgeEditor = (user) => {
         setEditingUser(user);
         setSelectedBadges(user.badges.map(b => b.id));
@@ -80,6 +86,49 @@ export default function UserManagement({ auth, users, allBadges }) {
         } else {
             setSelectedBadges([...selectedBadges, badgeId]);
         }
+    };
+
+    // --- 🌟 YETENEK (SKILL) YÖNETİMİ ---
+    const openSkillEditor = (user) => {
+        const initialSkills = {};
+        // Kullanıcının halihazırda sahip olduğu yetenekleri ve seviyelerini objeye atıyoruz
+        if (user.skills) {
+            user.skills.forEach(skill => {
+                initialSkills[skill.id] = skill.pivot?.proficiency_level || 1;
+            });
+        }
+        setSelectedSkills(initialSkills);
+        setEditingUserSkills(user);
+    };
+
+    const toggleSkill = (skillId) => {
+        if (isObserver) return;
+        const updated = { ...selectedSkills };
+        if (updated.hasOwnProperty(skillId)) {
+            delete updated[skillId]; // Varsa sil
+        } else {
+            updated[skillId] = 1; // Yoksa Level 1 olarak ekle
+        }
+        setSelectedSkills(updated);
+    };
+
+    const updateSkillLevel = (skillId, level) => {
+        if (isObserver) return;
+        setSelectedSkills({ ...selectedSkills, [skillId]: parseInt(level) || 1 });
+    };
+
+    const saveSkills = () => {
+        handleAction(() => {
+            // Veriyi { id: 1, level: 3 } formatında bir diziye çevir
+            const formattedSkills = Object.entries(selectedSkills).map(([id, level]) => ({
+                id: parseInt(id),
+                level: level
+            }));
+
+            router.post(route('admin.users.skills', editingUserSkills.id), { skills: formattedSkills }, { 
+                onSuccess: () => setEditingUserSkills(null) 
+            });
+        });
     };
 
     return (
@@ -185,7 +234,11 @@ export default function UserManagement({ auth, users, allBadges }) {
                                             </select>
                                         </td>
                                         <td className="py-3 sm:py-4 px-2 sm:px-4 text-right flex justify-end gap-1.5 sm:gap-3">
-                                            <button onClick={() => openBadgeEditor(user)} className="bg-blue-500/20 text-blue-400 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-500/30 transition">Edit Badges</button>
+                                            <button onClick={() => openBadgeEditor(user)} className="bg-purple-500/20 text-purple-400 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-purple-500/30 transition">Edit Badges</button>
+                                            
+                                            {/* 🌟 YENİ: YETENEK DÜZENLEME BUTONU */}
+                                            <button onClick={() => openSkillEditor(user)} className="bg-blue-500/20 text-blue-400 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-500/30 transition border border-blue-500/20">Edit Skills</button>
+                                            
                                             {user.email !== 'inertia@test.com' && user.id !== auth.user.id && (
                                                 <button onClick={() => handleDelete(user.id)} className="bg-red-500/20 text-red-400 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-red-500/30 transition">Delete</button>
                                             )}
@@ -217,6 +270,52 @@ export default function UserManagement({ auth, users, allBadges }) {
                             <div className="flex justify-end gap-3">
                                 <button onClick={() => setEditingUser(null)} className="px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition">Cancel</button>
                                 <button onClick={saveBadges} className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 sm:px-8 py-2 rounded-xl text-xs sm:text-sm font-bold hover:bg-emerald-500/30 transition shadow-[0_0_15px_rgba(16,185,129,0.2)]">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 🌟 YENİ: MODAL (Edit Skills & Levels) */}
+                {editingUserSkills && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-[#110826] border border-blue-500/40 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-sm sm:text-lg font-bold text-white uppercase tracking-tight">Assign Skills for <span className="text-blue-400">{editingUserSkills.name}</span></h3>
+                                <button onClick={() => setEditingUserSkills(null)} className="text-slate-400 hover:text-white text-xl">✕</button>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 gap-3 sm:gap-4 mb-8">
+                                {allSkills && allSkills.length > 0 ? allSkills.map(skill => {
+                                    const isSelected = selectedSkills.hasOwnProperty(skill.id);
+                                    return (
+                                        <div key={skill.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 bg-[#160d33] border rounded-xl transition ${isSelected ? 'border-blue-500 bg-blue-500/10' : 'border-white/5'} ${isObserver ? 'opacity-50' : ''}`}>
+                                            <label className={`flex items-center gap-3 ${isObserver ? 'cursor-not-allowed' : 'cursor-pointer'} flex-1`}>
+                                                <input disabled={isObserver} type="checkbox" checked={isSelected} onChange={() => toggleSkill(skill.id)} className="rounded text-blue-600 bg-black/50 border-white/20 focus:ring-0" />
+                                                <span className="text-xs sm:text-sm font-bold text-slate-200 tracking-widest">{skill.name}</span>
+                                            </label>
+                                            
+                                            {/* Yetenek seçiliyse Level inputu görünür */}
+                                            {isSelected && (
+                                                <div className="flex items-center gap-2 sm:ml-auto">
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Level:</span>
+                                                    <input 
+                                                        disabled={isObserver} 
+                                                        type="number" 
+                                                        min="1" max="100" 
+                                                        value={selectedSkills[skill.id] || 1} 
+                                                        onChange={(e) => updateSkillLevel(skill.id, e.target.value)} 
+                                                        className="w-16 sm:w-20 bg-black/50 border border-blue-500/30 text-blue-300 text-xs font-bold rounded-lg p-1.5 text-center focus:ring-blue-500" 
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }) : <p className="text-slate-500 text-sm italic">No skills available in the system.</p>}
+                            </div>
+                            
+                            <div className="flex justify-end gap-3">
+                                <button onClick={() => setEditingUserSkills(null)} className="px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition">Cancel</button>
+                                <button onClick={saveSkills} className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 sm:px-8 py-2 rounded-xl text-xs sm:text-sm font-bold hover:bg-emerald-500/30 transition shadow-[0_0_15px_rgba(16,185,129,0.2)]">Save Skills</button>
                             </div>
                         </div>
                     </div>
