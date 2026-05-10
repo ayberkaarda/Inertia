@@ -10,12 +10,11 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Api\WorkspaceController;
 use App\Http\Controllers\Api\TalentMatrixController;
 use App\Http\Controllers\Admin\UserManagementController;
-use App\Http\Controllers\Api\BadgeController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// 🌍 HERKESE AÇIK ALAN (Public)
+// 🌍 HERKESE AÇIK ALAN
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -25,7 +24,7 @@ Route::get('/', function () {
     ]);
 });
 
-// 🔒 GÜVENLİ ALAN (Sadece Giriş Yapanlar)
+// 🔒 GÜVENLİ ALAN
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- DASHBOARD & İSTATİSTİKLER ---
@@ -40,14 +39,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // 🤖 AI INSIGHTS ---
     Route::get('/ai-insights', [AiInsightsController::class, 'index'])->name('ai.index');
-
     Route::get('/talent-matrix', [TalentMatrixController::class, 'index'])->name('talent-matrix.index');
 
-    // web.php içinde
+    // PROFİL & BİLDİRİM
     Route::get('/user-profile/{id}', [UserController::class, 'show'])->name('user.profile');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-
 
     // --- SPRINT & TASK İŞLEMLERİ ---
     Route::get('/sprints', [SprintController::class, 'index'])->name('sprints.index');
@@ -56,7 +53,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/sprints/{sprint}', [SprintController::class, 'destroy']);
     Route::put('/sprints/{sprint}/status', [SprintController::class, 'updateStatus']);
     
-    // Tasks
     Route::post('/sprints/{sprint}/tasks', [SprintController::class, 'storeTask']);
     Route::put('/tasks/{card}', [SprintController::class, 'updateTask']);
     Route::delete('/tasks/{card}', [SprintController::class, 'destroyTask']);
@@ -69,30 +65,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/user/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
 
-    // --- ADMİN PANELİ İŞLEMLERİ ---
+    // --- ADMİN PANELİ İŞLEMLERİ (Kritik Düzeltme Burada!) ---
     Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users');
+    Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
     Route::put('/admin/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('admin.users.role');
-    Route::post('/admin/users/{user}/badges', [UserManagementController::class, 'syncBadges'])->name('admin.users.badges');
+    Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
     
-    // 🌟 YENİ ROTA EKLENDİ: ADMİN YETENEK (SKILL) GÜNCELLEMESİ
+    // Rozetleri ve Yetenekleri UserManagementController üzerinden yönetiyoruz (BadgeController bağımlılığı kalktı)
+    Route::post('/admin/users/{user}/badges', [UserManagementController::class, 'syncBadges'])->name('admin.users.badges');
+    Route::post('/admin/badges', [UserManagementController::class, 'storeBadge'])->name('admin.badges.store');
+    Route::delete('/admin/badges/{badge}', [UserManagementController::class, 'destroyBadge'])->name('admin.badges.destroy');
+    
+    // Yetenek (Skill) Yönetimi
     Route::post('/admin/users/{user}/skills', [UserManagementController::class, 'syncSkills'])->name('admin.users.skills');
-    // SİSTEME YETENEK EKLEME / SİLME ROTALARI
     Route::post('/admin/skills', [UserManagementController::class, 'storeSkill'])->name('admin.skills.store');
     Route::delete('/admin/skills/{skill}', [UserManagementController::class, 'destroySkill'])->name('admin.skills.destroy');
-    
-    Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
-    Route::post('/admin/badges', [BadgeController::class, 'store'])->name('admin.badges.store');
-    Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
-    Route::delete('/admin/badges/{badge}', [UserManagementController::class, 'destroyBadge'])->name('admin.badges.destroy');
     
     // --- CHAT & MESAJLAŞMA ---
     Route::get('/inbox', [ChatController::class, 'index'])->name('chat.inbox');
     Route::get('/chat/{receiver}', [ChatController::class, 'show'])->name('chat.show');
     Route::post('/chat/{conversation}/message', [ChatController::class, 'store'])->name('chat.store');
     
-    // Admin Görev Atama Rotası (Sprint Controller içinde)
+    // Admin Görev Atama
     Route::post('/tasks/{card}/assign', [SprintController::class, 'assignUserToTask'])->name('tasks.assign');
 
-}); // <-- BURADAKİ NOKTALI VİRGÜL HAYAT KURTARIR!
+});
 
 require __DIR__.'/auth.php';
