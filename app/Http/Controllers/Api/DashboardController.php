@@ -164,7 +164,7 @@ class DashboardController extends Controller
         // NOT: Şu an kullanıcının yetenek seviyesi 7 olarak sabit bırakıldı.
         // İlerleyen aşamalarda kullanıcının sahip olduğu yetenek sayısına göre bağlayabiliriz:
         // $userSkillLevel = DB::table('user_skill')->where('user_id', $user->id)->count();
-        $userSkillLevel = 7; 
+        $userSkillLevel = DB::table('user_skill')->where('user_id', $user->id)->count() ?? 0; 
 
         $difference = abs($taskComplexity - $userSkillLevel);
         $matchPercentage = max(0, 100 - ($difference * 10));
