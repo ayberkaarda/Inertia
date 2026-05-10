@@ -93,27 +93,29 @@ class SprintController extends Controller
         $card->complexity_level = $request->complexity_level;
         $card->list_id = 1; 
         $card->sprint_id = $sprint->id;
-        
-        // 🌟 ÇÖZÜM: user_id sütununu sildik. Sadece boş olmaması gereken diğer sütunları yolluyoruz.
         $card->position = 0;         
         $card->description = '';     
-        
         $card->save(); 
 
-        // 🌟 KULLANICIYI DOĞRU YERE BAĞLIYORUZ: Görevi oluşturan kişiyi pivot (ara) tabloya ekliyoruz.
         $card->users()->syncWithoutDetaching([\Illuminate\Support\Facades\Auth::id()]);
 
         // SPRINT'İN YETENEKLERİNİ GÖREVE MİRAS BIRAKIYORUZ
         if (!empty($sprint->required_skill)) {
             $itemNames = array_map('trim', explode(',', $sprint->required_skill));
             
-            // 1. Yetenekleri (Skills) Bağla
+            // 🌟 1. YETENEKLERİ (SKILLS) BAĞLAMA (ÇÖZÜM BURADA)
             $skillIds = \App\Models\Skill::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($skillIds)) {
-                $card->requiredSkills()->syncWithoutDetaching($skillIds); 
+                // Laravel'e pivot (ara) tablo verilerini de gönderiyoruz
+                $skillsWithPivot = [];
+                foreach ($skillIds as $id) {
+                    // Varsayılan olarak min_required_level = 1 atıyoruz
+                    $skillsWithPivot[$id] = ['min_required_level' => 1]; 
+                }
+                $card->requiredSkills()->syncWithoutDetaching($skillsWithPivot); 
             }
             
-            // 2. Rozetleri (Badges) Bağla
+            // 2. ROZETLERİ (BADGES) BAĞLA
             $badgeIds = \App\Models\Badge::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($badgeIds)) {
                 $card->badges()->syncWithoutDetaching($badgeIds); 
