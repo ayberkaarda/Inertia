@@ -166,9 +166,34 @@ class SprintController extends Controller
         return redirect()->back();
     }
 
+    // 🌟 GÜNCELLENDİ: Göreve katılınca Sprint yeteneklerini 30 günlüğüne kullanıcıya ekler
     public function joinTask(Card $card)
     {
-        $card->users()->syncWithoutDetaching([Auth::id()]);
+        $user = Auth::user();
+        
+        // 1. Kullanıcıyı göreve ekle
+        $card->users()->syncWithoutDetaching([$user->id]);
+        
+        // 2. Eğer görevin (sprint'in) bir yetenek listesi varsa onu da kullanıcıya ver
+        $sprint = $card->sprint; 
+        
+        if ($sprint && !empty($sprint->required_skill)) {
+            $skillNames = array_map('trim', explode(',', $sprint->required_skill));
+            $skillIds = \App\Models\Skill::whereIn('name', $skillNames)->pluck('id')->toArray();
+            
+            if (!empty($skillIds)) {
+                $pivotData = [];
+                foreach ($skillIds as $id) {
+                    $pivotData[$id] = [
+                        'proficiency_level' => 1, // Başlangıç yetkinliği
+                        'expires_at' => now()->addDays(30) // 🌟 30 GÜN SONRA SİLİNİR
+                    ];
+                }
+                
+                // Kullanıcıya bu yetenekleri bağla
+                $card->users()->skills()->syncWithoutDetaching($pivotData);
+            }
+        }
         
         SprintUpdated::dispatch();
         return redirect()->back();

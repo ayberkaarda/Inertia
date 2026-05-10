@@ -2,25 +2,18 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Card;
-use App\Models\Notification; // 🌟 YENİ: Kendi bildirim modelimizi ekledik
+use App\Models\Notification;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -40,13 +33,22 @@ class User extends Authenticatable
                     ->withPivot('role');
     }
 
+    // 🌟 GÜNCELLENDİ: expires_at pivot tablosuna eklendi
     public function skills(): BelongsToMany
     {
         return $this->belongsToMany(Skill::class, 'user_skill')
-                    ->withPivot('proficiency_level');
+                    ->withPivot(['proficiency_level', 'expires_at']);
     }
 
-    // Kullanıcının Rozetleri İlişkisi
+    // 🌟 YENİ: Sadece süresi dolmamış (aktif) yetenekleri getiren özellik
+    public function getActiveSkillsAttribute()
+    {
+        return $this->skills()->where(function($q) {
+            $q->whereNull('user_skill.expires_at')
+              ->orWhere('user_skill.expires_at', '>', now());
+        })->get();
+    }
+
     public function badges()
     {
         return $this->belongsToMany(Badge::class, 'badge_user')
@@ -54,26 +56,21 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
     
-    // Kullanıcının atanmış olduğu tüm kartlar (görevler) - Mevcut olan
     public function tasks(): BelongsToMany
     {
         return $this->belongsToMany(Card::class, 'card_user');
     }
 
-    // 🎯 ÇÖZÜM BURADA: Controller'ın aradığı 'cards' ilişkisini ekledik!
-    // Sistemin başka bir yerinde tasks() kullanılıyordur diye onu silmedik, bunu yanına ekledik.
     public function cards(): BelongsToMany
     {
         return $this->belongsToMany(Card::class, 'card_user');
     }
 
-    // 🌟 YENİ: Kullanıcının Bildirimleri (Kendi özel tablomuzdan çeker, en yeniler en üstte)
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class)->orderBy('created_at', 'desc');
     }
 
-    // KULLANICI YETKİ KONTROLLERİ
     public function isAdmin()
     {
         return $this->role === 'admin';
@@ -84,99 +81,73 @@ class User extends Authenticatable
         return $this->role === 'user';
     }
 
-    // 🔥 Aktif Rozetleri Getir (Süresi 60 günü geçmemiş olanlar)
     public function getActiveBadgesAttribute()
     {
         return $this->badges()->wherePivot('expires_at', '>', now())->get();
     }
 
-    // 🧠 DİNAMİK UNVAN ÜRETİCİ (AI Mantığı)
     public function getDeveloperTitleAttribute()
     {
         $badges = $this->active_badges;
         $count = $badges->count();
 
-        // Eğer hiç aktif rozeti yoksa
         if ($count == 0) {
             return 'Rookie (No Active Badges)';
         }
 
-        // Backend ve Frontend rozetlerini say
         $hasFrontend = $badges->where('category', 'frontend')->count() > 0;
         $hasBackend = $badges->where('category', 'backend')->count() > 0;
 
-        // Alanı (Role) Belirle
         $levelrole = 'Developer';
         if ($hasFrontend && $hasBackend) {
-            $levelrole = 'Software Developer'; // Revize edildi
+            $levelrole = 'Software Developer'; 
         } elseif ($hasFrontend) {
             $levelrole = 'Frontend Developer';
         } elseif ($hasBackend) {
             $levelrole = 'Backend Developer';
         }
 
-        // Seviyeyi (Level) Belirle
         $level = '';
         if ($count <= 2) {
             $level = 'Junior ';
         } elseif ($count <= 5) {
-            $level = 'Mid-Level '; // 3-5 rozet arası Mid
+            $level = 'Mid-Level '; 
         } else {
-            $level = 'Senior '; // 6 ve üzeri rozeti varsa Senior!
+            $level = 'Senior '; 
         }
 
-        return $level . $levelrole; // Örn: "Junior Frontend Developer" veya "Senior Software Developer"
+        return $level . $levelrole; 
     }
 
-    // 🧠 DİNAMİK YETENEK PUANI HESAPLAYICI (Talent Score)
     public function getTalentScoreAttribute()
     {
-        // 1. Kullanıcının tüm rozet geçmişini ve aktif rozetlerini sayalım
         $activeBadgesCount = $this->active_badges->count();
         $totalBadgesCount = $this->badges()->count(); 
         $expiredBadgesCount = $totalBadgesCount - $activeBadgesCount;
 
-        // 2. Eğer hiç rozeti yoksa sisteme yeni girmiştir, başlangıç puanı ver.
         if ($totalBadgesCount == 0) {
             return "1.0";
         }
 
-        // 3. Puanlama Algoritması:
-        // - Taban puan: 2.0
-        // - Her AKTİF rozet: +1.5 puan (Güncel bilgiyi ödüllendir)
-        // - Her SÜRESİ DOLMUŞ rozet: +0.3 puan (Geçmiş tecrübeyi tamamen silme)
         $score = 2.0 + ($activeBadgesCount * 1.5) + ($expiredBadgesCount * 0.3);
 
-        // 4. Puanın 9.9'u geçmesini engelle (Tavan limit)
         if ($score > 9.9) {
             $score = 9.9;
         }
 
-        // 5. Küsuratları düzelt (Örn: 7.354 yerine 7.3 dönsün)
         return number_format($score, 1);
     }
 
-    // Kullanıcının toplam yetkinlik puanını hesaplayan bir accessor
     public function getAverageSkillLevelAttribute()
     {
         return $this->skills()->avg('proficiency_level') ?: 0;
     }
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
