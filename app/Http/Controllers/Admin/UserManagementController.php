@@ -8,7 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\Badge;
-use App\Models\Skill; 
+use App\Models\Skill;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -21,12 +21,12 @@ class UserManagementController extends Controller
 
         $users = User::with(['badges', 'skills'])->get();
         $allBadges = Badge::all();
-        $allSkills = Skill::all(); 
+        $allSkills = Skill::all();
 
         return Inertia::render('Admin/UserManagement', [
             'users' => $users,
             'allBadges' => $allBadges,
-            'allSkills' => $allSkills 
+            'allSkills' => $allSkills
         ]);
     }
 
@@ -178,7 +178,7 @@ class UserManagementController extends Controller
             foreach ($request->skills as $skillData) {
                 $syncData[$skillData['id']] = [
                     'proficiency_level' => $skillData['level'],
-                    'tasks_completed' => 0, 
+                    'tasks_completed' => 0,
                     'expires_at' => now()->addDays(30)
                 ];
             }
