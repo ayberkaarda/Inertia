@@ -191,7 +191,7 @@ class SprintController extends Controller
                 }
                 
                 // Kullanıcıya bu yetenekleri bağla
-                $card->users()->skills()->syncWithoutDetaching($pivotData);
+                $user->skills()->syncWithoutDetaching($pivotData);
             }
         }
         
