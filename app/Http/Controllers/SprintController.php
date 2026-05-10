@@ -34,12 +34,21 @@ class SprintController extends Controller
     {
         Gate::authorize('create-sprint');
 
-        $request->validate(['name' => 'required', 'end_date' => 'required|date']);
-        Sprint::create($request->all());
+        $request->validate([
+            'name' => 'required', 
+            'end_date' => 'required|date'
+        ]);
+
+        // 🌟 ÇÖZÜM BURADA: React'ten gelen required_skill verisini ZORLA veritabanına yazıyoruz!
+        Sprint::create([
+            'name' => $request->name,
+            'end_date' => $request->end_date,
+            'required_skill' => $request->required_skill ?? '', // Eğer boşsa boş string ata
+            'status' => 'planned' // Yeni sprintler varsayılan olarak planned (planlandı) başlar
+        ]);
         
         SprintUpdated::dispatch();
         
-        // 🎯 DEĞİŞİKLİK: back() yerine doğrudan rotaya yönlendir!
         return redirect()->route('sprints.index');
     }
 
