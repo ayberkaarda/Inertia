@@ -37,7 +37,7 @@ class User extends Authenticatable
     public function skills(): BelongsToMany
     {
         return $this->belongsToMany(Skill::class, 'user_skill')
-                    ->withPivot(['proficiency_level', 'expires_at']);
+                    ->withPivot(['proficiency_level', 'expires_at', 'tasks_completed']);
     }
 
     // 🌟 YENİ: Sadece süresi dolmamış (aktif) yetenekleri getiren özellik

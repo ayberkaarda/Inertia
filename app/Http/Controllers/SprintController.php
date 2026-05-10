@@ -8,6 +8,7 @@ use App\Models\Skill;
 use App\Events\SprintUpdated;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -107,7 +108,7 @@ class SprintController extends Controller
         if (!empty($sprint->required_skill)) {
             $itemNames = array_map('trim', explode(',', $sprint->required_skill));
             
-            $skillIds = \App\Models\Skill::whereIn('name', $itemNames)->pluck('id')->toArray();
+            $skillIds = Skill::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($skillIds)) {
                 $skillsWithPivot = [];
                 foreach ($skillIds as $id) {
@@ -116,7 +117,7 @@ class SprintController extends Controller
                 $card->requiredSkills()->syncWithoutDetaching($skillsWithPivot); 
             }
             
-            $badgeIds = \App\Models\Badge::whereIn('name', $itemNames)->pluck('id')->toArray();
+            $badgeIds = Badge::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($badgeIds)) {
                 $card->badges()->syncWithoutDetaching($badgeIds); 
             }
@@ -166,7 +167,7 @@ class SprintController extends Controller
         return redirect()->back();
     }
 
-    // 🌟 GÜNCELLENDİ: Göreve katılınca Sprint yeteneklerini 30 günlüğüne kullanıcıya ekler
+    // 🌟 GÜNCELLENDİ: Mevcut level'ı ezmeden sadece eksik skilleri ekler
     public function joinTask(Card $card)
     {
         $user = Auth::user();
@@ -174,24 +175,33 @@ class SprintController extends Controller
         // 1. Kullanıcıyı göreve ekle
         $card->users()->syncWithoutDetaching([$user->id]);
         
-        // 2. Eğer görevin (sprint'in) bir yetenek listesi varsa onu da kullanıcıya ver
+        // 2. Sprint'in yeteneklerini kontrol et
         $sprint = $card->sprint; 
         
         if ($sprint && !empty($sprint->required_skill)) {
             $skillNames = array_map('trim', explode(',', $sprint->required_skill));
-            $skillIds = \App\Models\Skill::whereIn('name', $skillNames)->pluck('id')->toArray();
+            $skillIds = Skill::whereIn('name', $skillNames)->pluck('id')->toArray();
             
             if (!empty($skillIds)) {
+                // Kullanıcının sistemde zaten var olan yeteneklerini çekiyoruz
+                $existingSkills = $user->skills()->pluck('skills.id')->toArray();
                 $pivotData = [];
+                
                 foreach ($skillIds as $id) {
-                    $pivotData[$id] = [
-                        'proficiency_level' => 1, // Başlangıç yetkinliği
-                        'expires_at' => now()->addDays(30) // 🌟 30 GÜN SONRA SİLİNİR
-                    ];
+                    // Sadece kullanıcıda BU YETENEK YOKSA sıfırdan ekle
+                    // Böylece Level 3 olmuş bir adamın yeteneği Level 1'e sıfırlanmaz
+                    if (!in_array($id, $existingSkills)) {
+                        $pivotData[$id] = [
+                            'proficiency_level' => 1,
+                            'tasks_completed' => 0, 
+                            'expires_at' => now()->addDays(30)
+                        ];
+                    }
                 }
                 
-                // Kullanıcıya bu yetenekleri bağla
-                $user->skills()->syncWithoutDetaching($pivotData);
+                if (!empty($pivotData)) {
+                    $user->skills()->attach($pivotData);
+                }
             }
         }
         
@@ -199,6 +209,7 @@ class SprintController extends Controller
         return redirect()->back();
     }
 
+    // 🌟 GÜNCELLENDİ: Task tamamlandığında XP artırır ve 3 XP'de Level atlatır
     public function toggleTaskCompletion(Card $card)
     {
         if ($card->is_completed) {
@@ -209,8 +220,10 @@ class SprintController extends Controller
             'is_completed' => true
         ]);
         
-        $card->load(['users', 'badges']);
+        // Sprint'i de ilişkilerle yüklüyoruz ki içindeki required_skill bilgisini alalım
+        $card->load(['users', 'badges', 'sprint']);
 
+        // 1. ROZET (BADGE) İŞLEMLERİ
         foreach ($card->users as $user) {
             foreach ($card->badges as $badge) {
                 $user->badges()->syncWithoutDetaching([
@@ -219,6 +232,46 @@ class SprintController extends Controller
                         'expires_at' => now()->addDays(60)
                     ]
                 ]);
+            }
+        }
+
+        // 2. 🎮 LEVEL UP MOTORU
+        if ($card->sprint && !empty($card->sprint->required_skill)) {
+            $skillNames = array_map('trim', explode(',', $card->sprint->required_skill));
+            $requiredSkillIds = Skill::whereIn('name', $skillNames)->pluck('id')->toArray();
+
+            foreach ($card->users as $user) {
+                foreach ($requiredSkillIds as $skillId) {
+                    
+                    // Pivot tablodan kullanıcının o yetenekteki mevcut durumunu buluyoruz
+                    $pivot = DB::table('user_skill')
+                        ->where('user_id', $user->id)
+                        ->where('skill_id', $skillId)
+                        ->first();
+
+                    if ($pivot) {
+                        $newTasks = $pivot->tasks_completed + 1; // XP (Görev) sayısını artır
+                        $newLevel = $pivot->proficiency_level;
+                        $newExpires = $pivot->expires_at;
+
+                        // 🔥 EĞER 3 GÖREV TAMAMLANDIYSA LEVEL UP YAP
+                        if ($newTasks >= 3) {
+                            $newLevel += 1;
+                            $newTasks = 0; // Bir sonraki level için sayacı sıfırla
+                            $newExpires = now()->addDays(15); // Level 1'den yüksek olduğu için 15 gün paslanma süresi ver
+                        }
+
+                        // Güncel bilgileri veritabanına yaz
+                        DB::table('user_skill')
+                            ->where('user_id', $user->id)
+                            ->where('skill_id', $skillId)
+                            ->update([
+                                'tasks_completed' => $newTasks,
+                                'proficiency_level' => $newLevel,
+                                'expires_at' => $newExpires
+                            ]);
+                    }
+                }
             }
         }
 

@@ -16,6 +16,9 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // 💀 SESSİZ PASLANMA MOTORUNU ÇALIŞTIR (Kullanıcı dashboard'a girdiğinde temizlik başlar)
+        $this->processSkillDecay();
+
         $user = request()->user();
 
         // 1. GLOBAL SYNERGY: Tüm takımdaki görevlerin yeteneklerle uyumu
@@ -102,7 +105,6 @@ class DashboardController extends Controller
             if (empty($requiredIds)) continue;
 
             foreach ($card->users as $u) {
-                // 🌟 GÜNCELLENDİ: Global sinerjide de sadece aktif yetenekleri dikkate al
                 $userSkillIds = DB::table('user_skill')
                     ->where('user_id', $u->id)
                     ->where(function($q) {
@@ -122,7 +124,6 @@ class DashboardController extends Controller
 
     private function calculateUserSkillMatchRate($user)
     {
-        // 🌟 GÜNCELLENDİ: Kullanıcının sadece aktif yeteneklerini al
         $userSkillIds = DB::table('user_skill')
             ->where('user_id', $user->id)
             ->where(function($q) {
@@ -133,14 +134,50 @@ class DashboardController extends Controller
             
         if (empty($userSkillIds)) return 15;
 
-        // Sistemde yetenek bekleyen tüm benzersiz yetenek ID'leri
         $requiredSkillIds = DB::table('card_skill')->distinct()->pluck('skill_id')->toArray();
         if (empty($requiredSkillIds)) return 95;
 
-        // Kesişime bak
         $matches = array_intersect($userSkillIds, $requiredSkillIds);
         $rate = (count($matches) / count($requiredSkillIds)) * 100;
 
         return min(100, round($rate));
+    }
+
+    /**
+     * 💀 SESSİZ PASLANMA MOTORU (Decay Engine)
+     * Kullanıcının süresi dolmuş yeteneklerini kontrol eder ve RPG mantığıyla düşürür.
+     */
+    private function processSkillDecay()
+    {
+        // Süresi dolmuş olan (expires_at tarihi geçmiş) yetenekleri bul
+        $expiredSkills = DB::table('user_skill')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<', Carbon::now())
+            ->get();
+
+        foreach ($expiredSkills as $skill) {
+            if ($skill->proficiency_level > 1) {
+                // Eğer level 1'den büyükse: 1 level düş, görev sayacını sıfırla
+                $newLevel = $skill->proficiency_level - 1;
+                
+                // Eğer 1. levele düştüyse ona son bir şans olarak 30 gün ver, yoksa standart 15 gün bekleme süresi ver
+                $newExpiresAt = $newLevel == 1 ? Carbon::now()->addDays(30) : Carbon::now()->addDays(15);
+
+                DB::table('user_skill')
+                    ->where('user_id', $skill->user_id)
+                    ->where('skill_id', $skill->skill_id)
+                    ->update([
+                        'proficiency_level' => $newLevel,
+                        'tasks_completed' => 0, // XP Sıfırlandı
+                        'expires_at' => $newExpiresAt
+                    ]);
+            } else {
+                // Eğer zaten Level 1 ise ve süresi dolmuşsa yetenek tamamen paslanıp kaybolur
+                DB::table('user_skill')
+                    ->where('user_id', $skill->user_id)
+                    ->where('skill_id', $skill->skill_id)
+                    ->delete();
+            }
+        }
     }
 }
