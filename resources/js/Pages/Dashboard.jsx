@@ -169,7 +169,7 @@ export default function Dashboard({ auth }) {
                                     {activeTab === 'sprints' ? (
                                         stats.active_sprints_list?.length > 0 ? stats.active_sprints_list.map((s, i) => (
                                             <tr key={i} className="group hover:bg-white/5 transition-all">
-                                                <td className="py-3 sm:py-5 pl-2"><div className="flex flex-col"><span className="text-xs sm:text-sm font-bold text-white group-hover:text-purple-400 transition-colors truncate max-w-[120px] sm:max-w-[200px]">{s.name}</span><div className="flex flex-wrap gap-1 mt-1">{s.required_skill?.split(',').slice(0, 2).map((sk, si) => <span key={si} className="text-[7px] sm:text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1 sm:px-1.5 py-0.5 rounded uppercase font-black">{sk.trim()}</span>)}</div></div></td>
+                                                <td className="py-3 sm:py-5 pl-2"><div className="flex flex-col"><span className="text-xs sm:text-sm font-bold text-white group-hover:text-purple-400 transition-colors truncate max-w-[120px] sm:max-w-[200px]">{s.name}</span><div className="flex flex-wrap gap-1 mt-1">{s.required_skill?.split(',').slice(0, 2).map((sk, si) => <span key={si} className="text-[7px] sm:text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded uppercase font-black">{sk.trim()}</span>)}</div></div></td>
                                                 <td className="py-3 sm:py-5 text-center"><span className="text-[9px] sm:text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-full font-black uppercase">Active</span></td>
                                                 <td className="py-3 sm:py-5 text-center"><span className="text-[10px] sm:text-xs font-bold text-slate-300">{s.end_date}</span></td>
                                                 <td className="py-3 sm:py-5 text-right pr-4"><span className="text-xs sm:text-sm font-black text-white">{s.tasks?.length || 0}</span></td>
@@ -183,10 +183,34 @@ export default function Dashboard({ auth }) {
                                                     <td className="py-3 sm:py-5 pl-2">
                                                         <div className="flex flex-col max-w-[120px] sm:max-w-[200px]">
                                                             <span className="text-xs sm:text-sm font-bold truncate text-slate-200 group-hover:text-purple-400" title={t.title}>{t.title}</span>
-                                                            {/* 🌟 KRİTİK DÜZELTME BURASI: Hem camelCase hem snake_case kontrolü */}
-                                                            <span className="text-[8px] sm:text-[9px] text-slate-500 font-bold uppercase mt-1 truncate">
-                                                                { (t.required_skills?.[0]?.name || t.requiredSkills?.[0]?.name) || (t.badges && t.badges.length > 0 ? t.badges[0].name : null) || 'General Protocol' }
-                                                            </span>
+                                                            
+                                                            {/* 🌟 RASTGELE SEÇİM VE MOR TAG TASARIMI BURASI */}
+                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                {(() => {
+                                                                    const skills = t.required_skills || t.requiredSkills || [];
+                                                                    const badges = t.badges || [];
+                                                                    let pool = [];
+
+                                                                    if (skills.length > 0) {
+                                                                        pool = [...skills];
+                                                                    } else if (badges.length > 0) {
+                                                                        pool = [...badges];
+                                                                    }
+
+                                                                    if (pool.length === 0) {
+                                                                        return <span className="text-[8px] sm:text-[9px] text-slate-500 font-bold uppercase truncate">GENERAL PROTOCOL</span>;
+                                                                    }
+
+                                                                    // Havuzu karıştır ve 2 tane al
+                                                                    const selected = [...pool].sort(() => 0.5 - Math.random()).slice(0, 2);
+
+                                                                    return selected.map((item, idx) => (
+                                                                        <span key={idx} className="text-[7px] sm:text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded uppercase font-black shadow-sm">
+                                                                            {item.name}
+                                                                        </span>
+                                                                    ));
+                                                                })()}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td className="py-3 sm:py-5 text-center"><div className="flex justify-center -space-x-1.5 sm:-space-x-2">{t.users?.slice(0, 3).map((u, ui) => <img key={ui} src={u.avatar ? `/storage/${u.avatar}` : `https://ui-avatars.com/api/?name=${u.name}&background=random&color=fff&bold=true`} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-[#160d33] shadow-lg object-cover" title={u.name} />)}</div></td>
