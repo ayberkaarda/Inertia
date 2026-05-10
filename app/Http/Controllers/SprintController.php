@@ -15,16 +15,17 @@ class SprintController extends Controller
 {
     public function index()
     {
+        // 🌟 OTOMATİK EXPIRED KONTROLÜ: 
+        // Sayfa yüklendiğinde deadline'ı geçmiş planned veya active sprintleri expired yapar.
         Sprint::whereIn('status', ['planned', 'active'])
               ->whereDate('end_date', '<', now()->toDateString())
               ->update(['status' => 'expired']);
 
-        // 🌟 GÜNCELLEME: tasks.users ekleyerek göreve katılanların fotoğraflarını da çekiyoruz
+        // tasks.users ekleyerek göreve katılanların fotoğraflarını da çekiyoruz
         $sprints = Sprint::with(['tasks.users'])->latest()->get();
 
         return Inertia::render('Sprints/Index', [
             'initialSprints' => $sprints,
-            // 🌟 YENİ: DİNAMİK VERİ ÇEKİMİ 🌟
             'availableBadges' => Badge::pluck('name'),
             'availableSkills' => Skill::pluck('name'),
         ]);
@@ -39,16 +40,14 @@ class SprintController extends Controller
             'end_date' => 'required|date'
         ]);
 
-        // 🌟 ÇÖZÜM BURADA: React'ten gelen required_skill verisini ZORLA veritabanına yazıyoruz!
         Sprint::create([
             'name' => $request->name,
             'end_date' => $request->end_date,
-            'required_skill' => $request->required_skill ?? '', // Eğer boşsa boş string ata
-            'status' => 'planned' // Yeni sprintler varsayılan olarak planned (planlandı) başlar
+            'required_skill' => $request->required_skill ?? '',
+            'status' => 'planned'
         ]);
         
         SprintUpdated::dispatch();
-        
         return redirect()->route('sprints.index');
     }
 
@@ -72,15 +71,22 @@ class SprintController extends Controller
         return redirect()->back();
     }
 
+    // 🌟 GÜNCELLENDİ: SPRINT COMPLETED OLUNCA TASKLARI KİTLEME 🌟
     public function updateStatus(Request $request, Sprint $sprint)
     {
-        $sprint->update(['status' => $request->status]);
+        $newStatus = $request->status;
+
+        // Eğer sprint tamamlandıysa içindeki tüm taskları otomatik bitir
+        if ($newStatus === 'completed') {
+            $sprint->tasks()->update(['is_completed' => true]);
+        }
+
+        $sprint->update(['status' => $newStatus]);
         
         SprintUpdated::dispatch();
         return redirect()->back();
     }
 
-    // 🎯 İŞTE KRİTİK DEĞİŞİKLİK BURADA: Görev oluşturulurken Sprint'in yetenekleri göreve de kopyalanıyor!
     public function storeTask(Request $request, Sprint $sprint)
     {
         $request->validate([
@@ -96,10 +102,6 @@ class SprintController extends Controller
         $card->position = 0;         
         $card->description = '';     
         $card->save(); 
-
-        // 🌟 DÜZELTME: Otomatik atama satırını kaldırdık! 🌟
-        // Artık görevi oluşturan kişi otomatik olarak atanmayacak.
-        // Kullanıcılar 'joinTask' metodunu tetikleyen butonla dahil olacaklar.
 
         // SPRINT'İN YETENEKLERİNİ GÖREVE MİRAS BIRAKIYORUZ
         if (!empty($sprint->required_skill)) {
@@ -120,8 +122,7 @@ class SprintController extends Controller
             }
         }
 
-        \App\Events\SprintUpdated::dispatch();
-        
+        SprintUpdated::dispatch();
         return redirect()->route('sprints.index');
     }
 
@@ -197,7 +198,6 @@ class SprintController extends Controller
         }
 
         \App\Events\SprintUpdated::dispatch();
-
         return redirect()->back();
     }
 }
