@@ -102,11 +102,11 @@ export default function UserManagement({ auth, users, allBadges }) {
                     <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 items-end">
                         <div>
                             <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Full Name</label>
-                            <input disabled={isObserver} type="text" value={userData.name} onChange={e => setUserData('name', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="John Doe" />
+                            <input disabled={isObserver} type="text" value={userData.name} onChange={e => setUserData('name', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="Ayberk Arda" />
                         </div>
                         <div>
                             <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Email</label>
-                            <input disabled={isObserver} type="email" value={userData.email} onChange={e => setUserData('email', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="john@example.com" />
+                            <input disabled={isObserver} type="email" value={userData.email} onChange={e => setUserData('email', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="ayberk20arda@gmail.com" />
                         </div>
                         <div>
                             <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Password</label>
@@ -155,7 +155,7 @@ export default function UserManagement({ auth, users, allBadges }) {
 
                 {/* KULLANICI TABLOSU */}
                 <div className="bg-[#160d33]/90 backdrop-blur-xl border border-purple-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl">
-                    <h2 className="text-base sm:text-2xl font-black text-white tracking-wide mb-4 sm:mb-6 uppercase">User Fleet</h2>
+                    <h2 className="text-base sm:text-2xl font-black text-white tracking-wide mb-4 sm:mb-6 uppercase">User Management</h2>
                     <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-purple-500/20 pb-2">
                         <table className="w-full text-left border-collapse min-w-[600px]">
                             <thead>
