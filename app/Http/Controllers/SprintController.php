@@ -84,21 +84,22 @@ class SprintController extends Controller
             'user_id' => Auth::id()
         ]);
 
-        // 🌟 SPRINT'İN YETENEKLERİNİ GÖREVE (CARD) MİRAS BIRAKIYORUZ
+        // 🌟 SPRINT'İN YETENEKLERİNİ GÖREVE MİRAS BIRAKIYORUZ
         if (!empty($sprint->required_skill)) {
-            // Virgülle ayrılmış "React, PHP" gibi stringi diziye çevir
-            $skillNames = array_map('trim', explode(',', $sprint->required_skill));
+            // Virgülle ayrılmış stringi diziye çevir
+            $itemNames = array_map('trim', explode(',', $sprint->required_skill));
             
-            // Veritabanından bu isimlere ait ID'leri bul
-            $skillIds = Skill::whereIn('name', $skillNames)->pluck('id');
-            if ($skillIds->isNotEmpty()) {
-                // Göreve (Card) bu yetenekleri bağla
+            // 🎯 ÇÖZÜM: pluck('id') sonuna toArray() ekleyerek Laravel'in kafasının karışmasını önlüyoruz!
+            
+            // 1. Yetenekleri (Skills) Bağla
+            $skillIds = \App\Models\Skill::whereIn('name', $itemNames)->pluck('id')->toArray();
+            if (!empty($skillIds)) {
                 $card->requiredSkills()->syncWithoutDetaching($skillIds); 
             }
             
-            // Aynı şekilde rozetleri (Badge) de bağla ki görev bitince rozet verilebilsin
-            $badgeIds = Badge::whereIn('name', $skillNames)->pluck('id');
-            if ($badgeIds->isNotEmpty()) {
+            // 2. Rozetleri (Badges) Bağla
+            $badgeIds = \App\Models\Badge::whereIn('name', $itemNames)->pluck('id')->toArray();
+            if (!empty($badgeIds)) {
                 $card->badges()->syncWithoutDetaching($badgeIds); 
             }
         }
