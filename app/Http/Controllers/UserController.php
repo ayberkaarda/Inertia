@@ -13,21 +13,18 @@ class UserController extends Controller
      */
     public function index()
     {
-        // 🌟 GÜNCELLEME: Performansı hesaplayabilmek için 'tasks' ilişkisini de çekiyoruz
         $users = User::with(['badges', 'tasks'])->get()->map(function($user) {
             
             // 🧠 GERÇEK PERFORMANS ALGORİTMASI 
             $totalTasks = $user->tasks->count();
             $completedTasks = $user->tasks->where('is_completed', true)->count();
             
-            // Eğer görevi varsa (Tamamlanan / Toplam) * 100 yap. Hiç görevi yoksa varsayılan 70 ver.
             $realPerformance = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 70;
 
             return [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                // 🔥 Artık rand() yok, emekle kazanılmış gerçek performans yüzdesi var!
                 'performance' => $user->performance ?? $realPerformance, 
                 'growth' => ($user->growth ?? '+2') . ' Skill Gain',
                 'growth_raw' => $user->growth ?? 2,
@@ -45,14 +42,39 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::with(['badges', 'tasks' => function($query) {
-            $query->orderBy('updated_at', 'desc');
+        // 🌟 1. DÜZELTME: 'skills' ilişkisini de çekiyoruz
+        $user = User::with(['badges', 'skills', 'tasks' => function($query) {
+            $query->orderBy('created_at', 'desc')->take(10);
         }])->findOrFail($id);
 
-        // 🧠 GERÇEK PERFORMANS ALGORİTMASI (Profil Sayfası İçin Birebir Aynı Mantık)
+        // 🧠 GERÇEK PERFORMANS ALGORİTMASI
         $totalTasks = $user->tasks->count();
         $completedTasks = $user->tasks->where('is_completed', true)->count();
         $realPerformance = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 70;
+
+        // 🌟 2. DÜZELTME: Sadece süresi dolmamış skilleri çekiyoruz
+        $activeSkills = $user->skills()->where(function($q) {
+            $q->whereNull('user_skill.expires_at')
+              ->orWhere('user_skill.expires_at', '>', now());
+        })->get();
+
+        // 🌟 3. DÜZELTME: 'status' yerine 'is_completed' kullanıyoruz ve formata sokuyoruz
+        $recentActivities = $user->tasks->take(5)->map(function($task) {
+            return [
+                'action' => $task->is_completed ? 'Mission Completed' : 'Mission Active',
+                'date' => $task->created_at->diffForHumans(),
+                'description' => "Working on: " . ($task->title ?? $task->name) . " (" . $task->complexity_level . "★ Complexity)"
+            ];
+        })->toArray();
+
+        // Eğer hiç görevi yoksa varsayılan mesaj
+        if (empty($recentActivities)) {
+            $recentActivities = [[
+                'action' => 'System Initialized',
+                'date' => $user->created_at->diffForHumans(),
+                'description' => 'Profile created and neural link established.'
+            ]];
+        }
 
         $userProfile = [
             'id'              => $user->id,
@@ -61,8 +83,6 @@ class UserController extends Controller
             'avatar'          => $user->avatar, 
             'developer_title' => $user->developer_title, 
             'talentScore'     => $user->talent_score,
-            
-            // 🔥 Burada da rand() tuzağını kaldırdık!
             'performance'     => $user->performance ?? $realPerformance,
             'growth'          => $user->growth ?? '+2',
             
@@ -70,17 +90,12 @@ class UserController extends Controller
                 'name' => $b->name,
                 'icon' => $b->icon,
             ]),
-
-            'activeSprints'   => $user->tasks->where('status', 'in_progress')->map(fn($t) => [
-                'title' => $t->name ?? $t->title, 
-                'deadline' => $t->due_date ? $t->due_date->format('d M Y') : 'No Deadline'
-            ])->values(),
-
-            'recentActivities' => $user->tasks->where('status', 'completed')->take(5)->map(fn($t) => [
-                'action' => 'Task Completed',
-                'date' => $t->updated_at->diffForHumans(), 
-                'description' => "'" . ($t->name ?? $t->title) . "' task successfully completed."
-            ])->values()
+            
+            // 🔥 4. DÜZELTME: React tarafının beklediği eksik "skills" değişkenini gönderiyoruz!
+            'skills'          => $activeSkills,
+            
+            // 🔥 5. DÜZELTME: Düzenlenmiş görev listesini gönderiyoruz
+            'recentActivities'=> $recentActivities
         ];
 
         return Inertia::render('Profile/Show', [
