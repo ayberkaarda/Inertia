@@ -76,6 +76,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // 🌟 YENİ ROTA EKLENDİ: ADMİN YETENEK (SKILL) GÜNCELLEMESİ
     Route::post('/admin/users/{user}/skills', [UserManagementController::class, 'syncSkills'])->name('admin.users.skills');
+    // SİSTEME YETENEK EKLEME / SİLME ROTALARI
+    Route::post('/admin/skills', [UserManagementController::class, 'storeSkill'])->name('admin.skills.store');
+    Route::delete('/admin/skills/{skill}', [UserManagementController::class, 'destroySkill'])->name('admin.skills.destroy');
     
     Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
     Route::post('/admin/badges', [BadgeController::class, 'store'])->name('admin.badges.store');

@@ -72,7 +72,6 @@ class SprintController extends Controller
         return redirect()->back();
     }
 
-    // 🌟 GÜNCELLENDİ: SPRINT COMPLETED OLUNCA TASKLARI KİTLEME 🌟
     public function updateStatus(Request $request, Sprint $sprint)
     {
         $newStatus = $request->status;
@@ -167,7 +166,6 @@ class SprintController extends Controller
         return redirect()->back();
     }
 
-    // 🌟 GÜNCELLENDİ: Mevcut level'ı ezmeden sadece eksik skilleri ekler
     public function joinTask(Card $card)
     {
         $user = Auth::user();
@@ -188,8 +186,6 @@ class SprintController extends Controller
                 $pivotData = [];
                 
                 foreach ($skillIds as $id) {
-                    // Sadece kullanıcıda BU YETENEK YOKSA sıfırdan ekle
-                    // Böylece Level 3 olmuş bir adamın yeteneği Level 1'e sıfırlanmaz
                     if (!in_array($id, $existingSkills)) {
                         $pivotData[$id] = [
                             'proficiency_level' => 1,
@@ -209,7 +205,7 @@ class SprintController extends Controller
         return redirect()->back();
     }
 
-    // 🌟 GÜNCELLENDİ: Task tamamlandığında XP artırır ve 3 XP'de Level atlatır
+    // 🌟 GÜNCELLENDİ: MAX LEVEL 10 SINIRI VE SÜRE YENİLEME MANTIĞI 🌟
     public function toggleTaskCompletion(Card $card)
     {
         if ($card->is_completed) {
@@ -220,7 +216,6 @@ class SprintController extends Controller
             'is_completed' => true
         ]);
         
-        // Sprint'i de ilişkilerle yüklüyoruz ki içindeki required_skill bilgisini alalım
         $card->load(['users', 'badges', 'sprint']);
 
         // 1. ROZET (BADGE) İŞLEMLERİ
@@ -235,7 +230,7 @@ class SprintController extends Controller
             }
         }
 
-        // 2. 🎮 LEVEL UP MOTORU
+        // 2. 🎮 LEVEL UP & REFRESH MOTORU
         if ($card->sprint && !empty($card->sprint->required_skill)) {
             $skillNames = array_map('trim', explode(',', $card->sprint->required_skill));
             $requiredSkillIds = Skill::whereIn('name', $skillNames)->pluck('id')->toArray();
@@ -243,22 +238,25 @@ class SprintController extends Controller
             foreach ($card->users as $user) {
                 foreach ($requiredSkillIds as $skillId) {
                     
-                    // Pivot tablodan kullanıcının o yetenekteki mevcut durumunu buluyoruz
                     $pivot = DB::table('user_skill')
                         ->where('user_id', $user->id)
                         ->where('skill_id', $skillId)
                         ->first();
 
                     if ($pivot) {
-                        $newTasks = $pivot->tasks_completed + 1; // XP (Görev) sayısını artır
+                        $newTasks = $pivot->tasks_completed + 1;
                         $newLevel = $pivot->proficiency_level;
                         $newExpires = $pivot->expires_at;
 
-                        // 🔥 EĞER 3 GÖREV TAMAMLANDIYSA LEVEL UP YAP
+                        // 🔥 EĞER 3 GÖREV TAMAMLANDIYSA (XP DOLDUYSA)
                         if ($newTasks >= 3) {
-                            $newLevel += 1;
-                            $newTasks = 0; // Bir sonraki level için sayacı sıfırla
-                            $newExpires = now()->addDays(15); // Level 1'den yüksek olduğu için 15 gün paslanma süresi ver
+                            $newTasks = 0; // Sayacı sıfırla (Paslanma koruması için tekrar kasmaya başlar)
+                            $newExpires = now()->addDays(15); // Her halükarda süreyi tazele
+                            
+                            // 🌟 LEVEL CAP KONTROLÜ: Sadece 10'dan küçükse Level atlat
+                            if ($newLevel < 10) {
+                                $newLevel += 1;
+                            }
                         }
 
                         // Güncel bilgileri veritabanına yaz

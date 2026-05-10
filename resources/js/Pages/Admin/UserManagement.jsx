@@ -2,27 +2,29 @@ import React, { useState } from 'react';
 import { Head, router, Link, useForm } from '@inertiajs/react';
 import SidebarHeader from '@/Layouts/SidebarHeaderLayout';
 
-// 🌟 allSkills prop'u eklendi
 export default function UserManagement({ auth, users, allBadges, allSkills = [] }) {
     const [editingUser, setEditingUser] = useState(null);
     const [selectedBadges, setSelectedBadges] = useState([]);
 
-    // 🌟 Yetenek (Skill) Modalı için State'ler
     const [editingUserSkills, setEditingUserSkills] = useState(null);
-    const [selectedSkills, setSelectedSkills] = useState({}); // { skillId: level } formatında tutar
+    const [selectedSkills, setSelectedSkills] = useState({});
 
     // 🛡️ Gözlemci Kontrolü
     const isObserver = auth.user.role === 'observer';
 
-    const { data: userData, setData: setUserData, post: postUser, processing: userProcessing, reset: resetUser, errors: userErrors } = useForm({
+    const { data: userData, setData: setUserData, post: postUser, reset: resetUser } = useForm({
         name: '', email: '', password: '', role: 'user',
     });
 
-    const { data: badgeData, setData: setBadgeData, post: postBadge, processing: badgeProcessing, reset: resetBadge, errors: badgeErrors } = useForm({
+    const { data: badgeData, setData: setBadgeData, post: postBadge, reset: resetBadge } = useForm({
         name: '', icon: null, category: 'frontend',
     });
 
-    // 🛡️ Engelleyici Fonksiyon
+    // 🌟 YENİ: Yetenek ekleme formu state'i
+    const { data: skillData, setData: setSkillData, post: postSkill, reset: resetSkill } = useForm({
+        name: '',
+    });
+
     const handleAction = (callback) => {
         if (isObserver) {
             alert('🚫 SYSTEM DENIED: You are in Observer Mode. Changes are not allowed.');
@@ -45,10 +47,27 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
         });
     };
 
+    // 🌟 YENİ: Yetenek Oluşturma Fonksiyonu
+    const handleCreateSkill = (e) => {
+        e.preventDefault();
+        handleAction(() => {
+            postSkill(route('admin.skills.store'), { onSuccess: () => { resetSkill(); alert('Skill created successfully! 🎯'); } });
+        });
+    };
+
     const handleDeleteBadge = (badgeId) => {
         handleAction(() => {
             if (confirm('Are you sure you want to delete this badge?')) {
                 router.delete(route('admin.badges.destroy', badgeId));
+            }
+        });
+    };
+
+    // 🌟 YENİ: Yetenek Silme Fonksiyonu
+    const handleDeleteSkill = (skillId) => {
+        handleAction(() => {
+            if (confirm('Are you sure you want to delete this skill?')) {
+                router.delete(route('admin.skills.destroy', skillId));
             }
         });
     };
@@ -67,7 +86,6 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
         });
     };
 
-    // --- ROZET (BADGE) YÖNETİMİ ---
     const openBadgeEditor = (user) => {
         setEditingUser(user);
         setSelectedBadges(user.badges.map(b => b.id));
@@ -88,10 +106,8 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
         }
     };
 
-    // --- 🌟 YETENEK (SKILL) YÖNETİMİ ---
     const openSkillEditor = (user) => {
         const initialSkills = {};
-        // Kullanıcının halihazırda sahip olduğu yetenekleri ve seviyelerini objeye atıyoruz
         if (user.skills) {
             user.skills.forEach(skill => {
                 initialSkills[skill.id] = skill.pivot?.proficiency_level || 1;
@@ -105,21 +121,25 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
         if (isObserver) return;
         const updated = { ...selectedSkills };
         if (updated.hasOwnProperty(skillId)) {
-            delete updated[skillId]; // Varsa sil
+            delete updated[skillId]; 
         } else {
-            updated[skillId] = 1; // Yoksa Level 1 olarak ekle
+            updated[skillId] = 1; 
         }
         setSelectedSkills(updated);
     };
 
     const updateSkillLevel = (skillId, level) => {
         if (isObserver) return;
-        setSelectedSkills({ ...selectedSkills, [skillId]: parseInt(level) || 1 });
+        // 🌟 Max kontrolünü form içinde de zorluyoruz (10)
+        let parsedLevel = parseInt(level) || 1;
+        if (parsedLevel > 10) parsedLevel = 10;
+        if (parsedLevel < 1) parsedLevel = 1;
+        
+        setSelectedSkills({ ...selectedSkills, [skillId]: parsedLevel });
     };
 
     const saveSkills = () => {
         handleAction(() => {
-            // Veriyi { id: 1, level: 3 } formatında bir diziye çevir
             const formattedSkills = Object.entries(selectedSkills).map(([id, level]) => ({
                 id: parseInt(id),
                 level: level
@@ -136,8 +156,6 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
             <Head title="Admin Panel - Users" />
 
             <div className="flex flex-col gap-4 sm:gap-6 pb-6 sm:pb-10 px-1 sm:px-0 mt-2 sm:mt-0">
-                
-                {/* 🛡️ GÖZLEMCİ UYARI BARI */}
                 {isObserver && (
                     <div className="bg-blue-500/10 border border-blue-500/30 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 text-blue-400 animate-pulse">
                         <span className="text-base sm:text-xl">🛡️</span>
@@ -145,26 +163,51 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
                     </div>
                 )}
 
-                {/* 👤 KULLANICI OLUŞTURMA PANELİ */}
-                <div className={`bg-[#160d33]/90 backdrop-blur-xl border border-blue-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl ${isObserver ? 'opacity-60' : ''}`}>
-                    <h2 className="text-sm sm:text-xl font-black text-white tracking-wide mb-4 sm:mb-6 uppercase">Register New User</h2>
-                    <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 items-end">
-                        <div>
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Full Name</label>
-                            <input disabled={isObserver} type="text" value={userData.name} onChange={e => setUserData('name', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="Ayberk Arda" />
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+                    {/* 👤 KULLANICI OLUŞTURMA PANELİ */}
+                    <div className={`bg-[#160d33]/90 backdrop-blur-xl border border-blue-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl ${isObserver ? 'opacity-60' : ''}`}>
+                        <h2 className="text-sm sm:text-xl font-black text-white tracking-wide mb-4 sm:mb-6 uppercase">Register New User</h2>
+                        <form onSubmit={handleCreateUser} className="flex flex-col gap-4">
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Full Name</label>
+                                <input disabled={isObserver} type="text" value={userData.name} onChange={e => setUserData('name', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="Ayberk Arda" />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Email</label>
+                                <input disabled={isObserver} type="email" value={userData.email} onChange={e => setUserData('email', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="ayberk20arda@gmail.com" />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Password</label>
+                                <input disabled={isObserver} type="password" value={userData.password} onChange={e => setUserData('password', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="••••••••" />
+                            </div>
+                            <button type="submit" className="bg-blue-600 hover:bg-blue-500 mt-2 text-white w-full py-2.5 sm:py-3 rounded-xl text-[10px] sm:text-sm font-black transition shadow-lg shadow-blue-500/20">
+                                Register User
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* 🎯 YETENEK (SKILL) OLUŞTURMA PANELİ */}
+                    <div className={`bg-[#160d33]/90 backdrop-blur-xl border border-emerald-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl ${isObserver ? 'opacity-60' : ''}`}>
+                        <h2 className="text-sm sm:text-xl font-black text-white tracking-wide mb-4 sm:mb-6 uppercase">Manage Skills</h2>
+                        <form onSubmit={handleCreateSkill} className="flex flex-col gap-4 border-b border-white/5 pb-6">
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Skill Name</label>
+                                <input disabled={isObserver} type="text" value={skillData.name} onChange={e => setSkillData('name', e.target.value)} className="bg-[#110826] border border-emerald-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="e.g. PHP, Laravel, Angular..." />
+                            </div>
+                            <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white w-full py-2.5 sm:py-3 rounded-xl text-[10px] sm:text-sm font-black transition shadow-lg shadow-emerald-500/20">
+                                Create New Skill
+                            </button>
+                        </form>
+
+                        <div className="flex flex-wrap gap-2 mt-6">
+                            {allSkills.map(skill => (
+                                <div key={skill.id} className="relative group bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                                    <span className="text-emerald-300 text-[10px] sm:text-xs font-bold tracking-widest uppercase">{skill.name}</span>
+                                    <button onClick={() => handleDeleteSkill(skill.id)} className="text-red-400 hover:text-red-300 transition text-xs font-black ml-1">✕</button>
+                                </div>
+                            ))}
                         </div>
-                        <div>
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Email</label>
-                            <input disabled={isObserver} type="email" value={userData.email} onChange={e => setUserData('email', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="ayberk20arda@gmail.com" />
-                        </div>
-                        <div>
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 sm:mb-2">Password</label>
-                            <input disabled={isObserver} type="password" value={userData.password} onChange={e => setUserData('password', e.target.value)} className="bg-[#110826] border border-blue-500/30 text-slate-200 text-xs sm:text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 sm:p-3 disabled:cursor-not-allowed" placeholder="••••••••" />
-                        </div>
-                        <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white w-full py-2.5 sm:py-3 rounded-xl text-[10px] sm:text-sm font-black transition shadow-lg shadow-purple-500/20">
-                            Register User
-                        </button>
-                    </form>
+                    </div>
                 </div>
 
                 {/* 🏆 ROZET OLUŞTURMA PANELİ */}
@@ -236,7 +279,6 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
                                         <td className="py-3 sm:py-4 px-2 sm:px-4 text-right flex justify-end gap-1.5 sm:gap-3">
                                             <button onClick={() => openBadgeEditor(user)} className="bg-purple-500/20 text-purple-400 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-purple-500/30 transition">Edit Badges</button>
                                             
-                                            {/* 🌟 YENİ: YETENEK DÜZENLEME BUTONU */}
                                             <button onClick={() => openSkillEditor(user)} className="bg-blue-500/20 text-blue-400 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-500/30 transition border border-blue-500/20">Edit Skills</button>
                                             
                                             {user.email !== 'inertia@test.com' && user.id !== auth.user.id && (
@@ -275,7 +317,7 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
                     </div>
                 )}
 
-                {/* 🌟 YENİ: MODAL (Edit Skills & Levels) */}
+                {/* MODAL (Edit Skills & Levels) */}
                 {editingUserSkills && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                         <div className="bg-[#110826] border border-blue-500/40 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -294,14 +336,14 @@ export default function UserManagement({ auth, users, allBadges, allSkills = [] 
                                                 <span className="text-xs sm:text-sm font-bold text-slate-200 tracking-widest">{skill.name}</span>
                                             </label>
                                             
-                                            {/* Yetenek seçiliyse Level inputu görünür */}
                                             {isSelected && (
                                                 <div className="flex items-center gap-2 sm:ml-auto">
                                                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Level:</span>
+                                                    {/* 🌟 MAX = 10 OLARAK GÜNCELLENDİ */}
                                                     <input 
                                                         disabled={isObserver} 
                                                         type="number" 
-                                                        min="1" max="100" 
+                                                        min="1" max="10" 
                                                         value={selectedSkills[skill.id] || 1} 
                                                         onChange={(e) => updateSkillLevel(skill.id, e.target.value)} 
                                                         className="w-16 sm:w-20 bg-black/50 border border-blue-500/30 text-blue-300 text-xs font-bold rounded-lg p-1.5 text-center focus:ring-blue-500" 

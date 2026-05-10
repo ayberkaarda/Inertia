@@ -8,7 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\Badge;
-use App\Models\Skill; // 🌟 EKLENDİ
+use App\Models\Skill; 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -17,22 +17,19 @@ class UserManagementController extends Controller
 {
     public function index()
     {
-        // 🔒 Bu sayfayı sadece Admin görebilir
         Gate::authorize('manage-users');
 
-        // 🌟 GÜNCELLEME: Kullanıcıların sahip olduğu yetenekleri (skills) de çekiyoruz
         $users = User::with(['badges', 'skills'])->get();
         $allBadges = Badge::all();
-        $allSkills = Skill::all(); // 🌟 YENİ: React'e yollanacak tüm yetenekler
+        $allSkills = Skill::all(); 
 
         return Inertia::render('Admin/UserManagement', [
             'users' => $users,
             'allBadges' => $allBadges,
-            'allSkills' => $allSkills // 🌟 YENİ
+            'allSkills' => $allSkills 
         ]);
     }
 
-    // 👤 KULLANICI OLUŞTURMA (Admin Paneli)
     public function store(Request $request)
     {
         Gate::authorize('manage-users');
@@ -54,7 +51,6 @@ class UserManagementController extends Controller
         return back()->with('message', 'User created successfully! 🚀');
     }
 
-    // 🏆 ROZET OLUŞTURMA (Kategori ve İkon Kaydı)
     public function storeBadge(Request $request)
     {
         Gate::authorize('manage-users');
@@ -65,7 +61,6 @@ class UserManagementController extends Controller
             'icon' => 'required|image|mimes:png,jpg,jpeg,svg|max:2048',
         ]);
 
-        // İkonu storage/app/public/badges klasörüne kaydet
         $path = $request->file('icon')->store('badges', 'public');
 
         Badge::create([
@@ -77,17 +72,38 @@ class UserManagementController extends Controller
         return back()->with('message', 'Badge created successfully! 🏆');
     }
 
-    // 🌟 KULLANICI SİLME (GÜÇLENDİRİLMİŞ KALKAN)
+    // 🌟 YENİ: SİSTEME YENİ YETENEK (SKILL) EKLEME MOTORU
+    public function storeSkill(Request $request)
+    {
+        Gate::authorize('manage-users');
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:skills,name',
+        ]);
+
+        Skill::create([
+            'name' => $validated['name']
+        ]);
+
+        return back()->with('message', 'Skill created successfully! 🎯');
+    }
+
+    // 🌟 YENİ: SİSTEMDEN YETENEK SİLME
+    public function destroySkill(Skill $skill)
+    {
+        Gate::authorize('manage-users');
+        $skill->delete();
+        return back()->with('message', 'Skill deleted successfully.');
+    }
+
     public function destroy(User $user)
     {
         Gate::authorize('manage-users');
 
-        // 1. ROOT KALKANI: inertia@test.com ASLA silinemez!
         if ($user->email === 'inertia@test.com') {
             return redirect()->back()->with('error', 'System Override: owner role cannot be deleted!');
         }
 
-        // 2. KENDİNİ KORUMA: Admin yanlışlıkla kendini silemez!
         if ($user->id === Auth::id()) {
             return redirect()->back()->with('error', 'You cannot delete yourself!');
         }
@@ -101,7 +117,6 @@ class UserManagementController extends Controller
     {
         Gate::authorize('manage-users');
 
-        // Sunucudan ikon dosyasını silelim (Baştaki \ işaretini kaldırdık)
         if ($badge->icon && Storage::disk('public')->exists($badge->icon)) {
             Storage::disk('public')->delete($badge->icon);
         }
@@ -111,14 +126,12 @@ class UserManagementController extends Controller
         return back()->with('message', 'Badge deleted successfully.');
     }
 
-    // 🌟 KULLANICI ROLÜNÜ GÜNCELLE (GÜÇLENDİRİLMİŞ KALKAN)
     public function updateRole(Request $request, User $user)
     {
         Gate::authorize('manage-users');
         
         $request->validate(['role' => 'required|in:admin,user,observer']);
 
-        // ROOT KALKANI: inertia@test.com hesabının yetkisi ASLA düşürülemez!
         if ($user->email === 'inertia@test.com' && $request->role !== 'admin') {
             return redirect()->back()->with('error', 'System Override: owner role cannot be changed!');
         }
@@ -128,7 +141,6 @@ class UserManagementController extends Controller
         return redirect()->back()->with('message', 'User role updated successfully.');
     }
 
-    // Kullanıcıya Rozet Ekle/Çıkar
     public function syncBadges(Request $request, User $user)
     {
         Gate::authorize('manage-users');
@@ -141,7 +153,6 @@ class UserManagementController extends Controller
         $syncData = [];
         if ($request->has('badge_ids')) {
             foreach ($request->badge_ids as $id) {
-                // expires_at alanını 60 gün sonrasına kuruyoruz
                 $syncData[$id] = [
                     'last_earned_at' => now(), 
                     'expires_at' => now()->addDays(60)
@@ -154,31 +165,29 @@ class UserManagementController extends Controller
         return redirect()->back()->with('message', 'User badges updated successfully.');
     }
 
-    // 🌟 YENİ: YETENEK (SKILL) VE LEVEL BELİRLEME METODU
+    // KULLANICININ YETENEKLERİNİ GÜNCELLEME
     public function syncSkills(Request $request, User $user)
     {
         Gate::authorize('manage-users');
 
-        // React'ten gelen { skills: [{id: 1, level: 3}, ...] } formatını doğruluyoruz
         $request->validate([
             'skills' => 'array',
             'skills.*.id' => 'required|exists:skills,id',
-            'skills.*.level' => 'required|integer|min:1|max:100',
+            // 🌟 BURASI DA MAX 10 OLARAK DEĞİŞTİRİLDİ (Backend Güvenliği)
+            'skills.*.level' => 'required|integer|min:1|max:10',
         ]);
 
         $syncData = [];
         if ($request->has('skills')) {
             foreach ($request->skills as $skillData) {
-                // Her eklenen yeteneğe sistem tarafından default 30 gün verilir (Paslanma motoru için)
                 $syncData[$skillData['id']] = [
                     'proficiency_level' => $skillData['level'],
-                    'tasks_completed' => 0, // Yeni eklendiğinde XP sıfırdan başlar
+                    'tasks_completed' => 0, 
                     'expires_at' => now()->addDays(30)
                 ];
             }
         }
 
-        // sync: Seçilmeyenleri siler, seçilenleri ekler veya level/süresini günceller.
         $user->skills()->sync($syncData);
 
         return redirect()->back()->with('message', 'User skills and levels updated successfully.');
