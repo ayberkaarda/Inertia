@@ -82,26 +82,24 @@ class DashboardController extends Controller
 
     private function calculateGlobalSynergy()
     {
-        // Sistemdeki her atama için: Görevin istediği yeteneklerden kaçı kullanıcıda var?
-        $assignedCards = Card::has('users')->with('requiredSkills', 'users')->get();
-        if ($assignedCards->isEmpty()) return 85; // Kimse atanmamışsa %85 default ver
+        $assignedCards = Card::has('users')->with('users', 'requiredSkills')->get();
+        
+        if ($assignedCards->isEmpty()) {
+            return 0;
+        }
 
-        $totalRate = 0;
-        $totalAssignments = 0;
+        $totalScore = 0;
+        $matchCount = 0;
 
         foreach ($assignedCards as $card) {
-            $requiredIds = $card->requiredSkills->pluck('id')->toArray();
-            if (empty($requiredIds)) continue;
-
-            foreach ($card->users as $u) {
-                $userSkillIds = DB::table('user_skill')->where('user_id', $u->id)->pluck('skill_id')->toArray();
-                $matches = array_intersect($userSkillIds, $requiredIds);
-                $totalRate += (count($matches) / count($requiredIds)) * 100;
-                $totalAssignments++;
+            foreach ($card->users as $user) {
+                $score = $this->calculateMatchScore($user, $card);
+                $totalScore += $score;
+                $matchCount++;
             }
         }
 
-        return $totalAssignments > 0 ? round($totalRate / $totalAssignments) : 85;
+        return $matchCount > 0 ? round($totalScore / $matchCount) : 0;
     }
 
     private function calculateUserSkillMatchRate($user)
@@ -119,5 +117,19 @@ class DashboardController extends Controller
         $rate = (count($matches) / count($requiredSkillIds)) * 100;
 
         return min(100, round($rate));
+    }
+    private function calculateMatchScore($user, $card)
+    {
+        $taskComplexity = $card->complexity_level ?? 5;
+        
+        // NOT: Şu an kullanıcının yetenek seviyesi 7 olarak sabit bırakıldı.
+        // İlerleyen aşamalarda kullanıcının sahip olduğu yetenek sayısına göre bağlayabiliriz:
+        // $userSkillLevel = DB::table('user_skill')->where('user_id', $user->id)->count();
+        $userSkillLevel = DB::table('user_skill')->where('user_id', $user->id)->count() ?? 0; 
+
+        $difference = abs($taskComplexity - $userSkillLevel);
+        $matchPercentage = max(0, 100 - ($difference * 10));
+
+        return $matchPercentage;
     }
 }
