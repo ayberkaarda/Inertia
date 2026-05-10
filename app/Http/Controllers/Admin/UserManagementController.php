@@ -127,7 +127,6 @@ class UserManagementController extends Controller
     public function updateRole(Request $request, User $user)
     {
         Gate::authorize('manage-users');
-        
         $request->validate(['role' => 'required|in:admin,user,observer']);
 
         if ($user->email === 'inertia@test.com' && $request->role !== 'admin') {
@@ -152,7 +151,7 @@ class UserManagementController extends Controller
         if ($request->has('badge_ids')) {
             foreach ($request->badge_ids as $id) {
                 $syncData[$id] = [
-                    'last_earned_at' => now(), 
+                    'last_earned_at' => now(),
                     'expires_at' => now()->addDays(60)
                 ];
             }
