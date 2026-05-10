@@ -59,11 +59,9 @@ export default function Dashboard({ auth }) {
         <SidebarHeader auth={auth} pageTitle="Dashboard">
             <Head title="Inertia Dashboard" />
 
-            {/* 🌟 MOBİL UYUM: gap ve pb mobilde kısıldı, genel padding px-1 yapıldı */}
             <div className="flex flex-col gap-4 sm:gap-6 pb-6 sm:pb-10 px-1 sm:px-0">
                 
                 {/* 📌 STATS GRID (Top) */}
-                {/* 🌟 MOBİL UYUM: Mobilde grid-cols-2 yapılarak yan yana dizildi, alan tasarrufu sağlandı */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
                     {[
                         { title: "Match Rate", value: `${stats.skill_match_rate}%`, icon: "⭐" },
@@ -71,7 +69,6 @@ export default function Dashboard({ auth }) {
                         { title: "Bottleneck Alerts", value: stats.bottleneck_alerts, icon: "⚠️" },
                         { title: "Skill Balance", value: stats.skill_balance, icon: "📊" }
                     ].map((card, idx) => (
-                        // 🌟 MOBİL UYUM: Padding mobilde p-3/p-4'e indirildi
                         <div key={idx} onClick={card.onClick} className={`bg-[#160d33]/80 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-purple-500/20 flex flex-col sm:flex-row justify-between items-start sm:items-center relative overflow-hidden transition-all ${card.isInteractive ? 'cursor-pointer hover:border-purple-400 hover:scale-105 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : ''}`}>
                             <div className="z-10 relative">
                                 <h3 className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1">{card.title}</h3>
@@ -86,7 +83,6 @@ export default function Dashboard({ auth }) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     
                     {/* Verimlilik Grafiği */}
-                    {/* 🌟 MOBİL UYUM: Mobilde min-h düşürüldü, padding daraltıldı */}
                     <div className="lg:col-span-2 bg-[#160d33]/80 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-purple-500/20 min-h-[250px] sm:min-h-[350px] flex flex-col">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
                             <div>
@@ -158,7 +154,6 @@ export default function Dashboard({ auth }) {
                             </div>
                         </div>
 
-                        {/* 🌟 MOBİL UYUM: Tablo kaydırılabilir yapıldı ve min-w korundu */}
                         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-purple-500/20 relative">
                             <table className="w-full text-left min-w-[500px] sm:min-w-full">
                                 <thead>
@@ -185,7 +180,15 @@ export default function Dashboard({ auth }) {
                                             const match = Math.max(10, 100 - (t.complexity_level * 5));
                                             return (
                                                 <tr key={i} className="group hover:bg-white/5 transition-all">
-                                                    <td className="py-3 sm:py-5 pl-2"><div className="flex flex-col max-w-[120px] sm:max-w-[200px]"><span className="text-xs sm:text-sm font-bold truncate text-slate-200 group-hover:text-purple-400" title={t.title}>{t.title}</span><span className="text-[8px] sm:text-[9px] text-slate-500 font-bold uppercase mt-1 truncate">{t.required_skills?.[0]?.name || 'General Protocol'}</span></div></td>
+                                                    <td className="py-3 sm:py-5 pl-2">
+                                                        <div className="flex flex-col max-w-[120px] sm:max-w-[200px]">
+                                                            <span className="text-xs sm:text-sm font-bold truncate text-slate-200 group-hover:text-purple-400" title={t.title}>{t.title}</span>
+                                                            {/* 🌟 KRİTİK DÜZELTME BURASI: Hem camelCase hem snake_case kontrolü */}
+                                                            <span className="text-[8px] sm:text-[9px] text-slate-500 font-bold uppercase mt-1 truncate">
+                                                                {(t.required_skills?.[0]?.name || t.requiredSkills?.[0]?.name) || 'General Protocol'}
+                                                            </span>
+                                                        </div>
+                                                    </td>
                                                     <td className="py-3 sm:py-5 text-center"><div className="flex justify-center -space-x-1.5 sm:-space-x-2">{t.users?.slice(0, 3).map((u, ui) => <img key={ui} src={u.avatar ? `/storage/${u.avatar}` : `https://ui-avatars.com/api/?name=${u.name}&background=random&color=fff&bold=true`} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-[#160d33] shadow-lg object-cover" title={u.name} />)}</div></td>
                                                     <td className="py-3 sm:py-5 text-center"><span className={`text-[10px] sm:text-xs font-black ${match > 80 ? 'text-emerald-400' : 'text-amber-400'}`}>%{match}</span></td>
                                                     <td className="py-3 sm:py-5 text-right pr-4"><div className="flex items-center justify-end gap-2 sm:gap-3"><span className="text-white text-[10px] sm:text-xs font-black font-mono">{t.complexity_level}</span><div className="w-12 sm:w-20 h-1 sm:h-1.5 bg-white/5 rounded-full overflow-hidden shadow-inner"><div className={`h-full transition-all duration-1000 ${t.complexity_level > 7 ? 'bg-red-500' : 'bg-purple-500'}`} style={{width: `${t.complexity_level * 10}%`}}></div></div></div></td>
