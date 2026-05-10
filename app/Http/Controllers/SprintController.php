@@ -88,24 +88,28 @@ class SprintController extends Controller
             'complexity_level' => 'required|integer|min:1|max:10'
         ]);
 
-        $card = $sprint->tasks()->create([
-            'title' => $request->title,
-            'complexity_level' => $request->complexity_level,
-            'list_id' => 1,
-            'user_id' => Auth::id()
-        ]);
+        // 🌟 GÜVENLİ KAYIT: $fillable sorunlarını (list_id hatası) aşmak için nesneyi manuel oluşturuyoruz.
+        $card = new Card();
+        $card->title = $request->title;
+        $card->complexity_level = $request->complexity_level;
+        $card->list_id = 1; // 👈 Kırmızı ekranın sebebi bu alanın boş gitmesiydi!
+        $card->sprint_id = $sprint->id;
+        $card->save(); // Veritabanına güvenle kaydet
+
+        // Görevi oluşturan kişiyi anında bu göreve atamak (Join) istiyorsan:
+        $card->users()->syncWithoutDetaching([\Illuminate\Support\Facades\Auth::id()]);
 
         // SPRINT'İN YETENEKLERİNİ GÖREVE MİRAS BIRAKIYORUZ
         if (!empty($sprint->required_skill)) {
             $itemNames = array_map('trim', explode(',', $sprint->required_skill));
             
-            // 1. Yetenekleri (Skills) Bağla - toArray() EKLENDİ!
+            // 1. Yetenekleri (Skills) Bağla
             $skillIds = \App\Models\Skill::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($skillIds)) {
                 $card->requiredSkills()->syncWithoutDetaching($skillIds); 
             }
             
-            // 2. Rozetleri (Badges) Bağla - toArray() EKLENDİ!
+            // 2. Rozetleri (Badges) Bağla
             $badgeIds = \App\Models\Badge::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($badgeIds)) {
                 $card->badges()->syncWithoutDetaching($badgeIds); 
@@ -114,7 +118,6 @@ class SprintController extends Controller
 
         \App\Events\SprintUpdated::dispatch();
         
-        // 🚀 ÇÖZÜM BURADA: back() YERİNE DOĞRUDAN ROTAYA YÖNLENDİR!
         return redirect()->route('sprints.index');
     }
 
