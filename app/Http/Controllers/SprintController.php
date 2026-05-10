@@ -88,16 +88,21 @@ class SprintController extends Controller
             'complexity_level' => 'required|integer|min:1|max:10'
         ]);
 
-        // 🌟 GÜVENLİ KAYIT: $fillable sorunlarını (list_id hatası) aşmak için nesneyi manuel oluşturuyoruz.
         $card = new Card();
         $card->title = $request->title;
         $card->complexity_level = $request->complexity_level;
-        $card->list_id = 1; // 👈 Kırmızı ekranın sebebi bu alanın boş gitmesiydi!
+        $card->list_id = 1; 
         $card->sprint_id = $sprint->id;
-        $card->save(); // Veritabanına güvenle kaydet
+        
+        // 🌟 ÇÖZÜM: BÜYÜK İHTİMALLE EKSİK KALAN VE HATAYA SEBEP OLAN ALANLAR 🌟
+        $card->user_id = Auth::id(); // Görevi oluşturan kişi
+        $card->position = 0;         // Kart sıralaması
+        $card->description = '';     // Boş açıklama
+        
+        $card->save(); 
 
-        // Görevi oluşturan kişiyi anında bu göreve atamak (Join) istiyorsan:
-        $card->users()->syncWithoutDetaching([\Illuminate\Support\Facades\Auth::id()]);
+        // Görevi oluşturan kişiyi ara tabloya da (katılımcı olarak) ekliyoruz
+        $card->users()->syncWithoutDetaching([Auth::id()]);
 
         // SPRINT'İN YETENEKLERİNİ GÖREVE MİRAS BIRAKIYORUZ
         if (!empty($sprint->required_skill)) {
