@@ -185,7 +185,7 @@ export default function Dashboard({ auth }) {
                                                             <span className="text-xs sm:text-sm font-bold truncate text-slate-200 group-hover:text-purple-400" title={t.title}>{t.title}</span>
                                                             {/* 🌟 KRİTİK DÜZELTME BURASI: Hem camelCase hem snake_case kontrolü */}
                                                             <span className="text-[8px] sm:text-[9px] text-slate-500 font-bold uppercase mt-1 truncate">
-                                                                {(t.required_skills?.[0]?.name || t.requiredSkills?.[0]?.name) || 'General Protocol'}
+                                                                {(t.required_skills?.[0]?.name || t.requiredSkills?.[0]?.name) || (t.badges?.[0]?.name) || 'General Protocol'}
                                                             </span>
                                                         </div>
                                                     </td>
