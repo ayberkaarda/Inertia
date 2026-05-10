@@ -108,12 +108,6 @@ export default function TalentMatrix({
                                         <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">{comp.skill}</p>
                                         <p className="text-[9px] sm:text-[11px] font-bold text-purple-400 mt-1 uppercase tracking-wider">Tasks: {comp.tasks}</p>
                                     </div>
-                                    <div className="flex items-center gap-2 sm:gap-3">
-                                        <span className="text-white text-xs font-bold font-mono w-4">{comp.level}★</span>
-                                        <div className="w-16 sm:w-24 h-1 bg-white/10 rounded-full overflow-hidden">
-                                            <div className="w-full h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
-                                        </div>
-                                    </div>
                                 </div>
                             )) : (
                                 <div className="text-slate-500 text-xs sm:text-sm text-center py-6 sm:py-10 border border-dashed border-white/5 rounded-2xl">No active competencies found.</div>
