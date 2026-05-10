@@ -72,7 +72,6 @@ class UserManagementController extends Controller
         return back()->with('message', 'Badge created successfully! 🏆');
     }
 
-    // 🌟 YENİ: SİSTEME YENİ YETENEK (SKILL) EKLEME MOTORU
     public function storeSkill(Request $request)
     {
         Gate::authorize('manage-users');
@@ -88,7 +87,6 @@ class UserManagementController extends Controller
         return back()->with('message', 'Skill created successfully! 🎯');
     }
 
-    // 🌟 YENİ: SİSTEMDEN YETENEK SİLME
     public function destroySkill(Skill $skill)
     {
         Gate::authorize('manage-users');
@@ -165,7 +163,6 @@ class UserManagementController extends Controller
         return redirect()->back()->with('message', 'User badges updated successfully.');
     }
 
-    // KULLANICININ YETENEKLERİNİ GÜNCELLEME
     public function syncSkills(Request $request, User $user)
     {
         Gate::authorize('manage-users');
@@ -173,7 +170,6 @@ class UserManagementController extends Controller
         $request->validate([
             'skills' => 'array',
             'skills.*.id' => 'required|exists:skills,id',
-            // 🌟 BURASI DA MAX 10 OLARAK DEĞİŞTİRİLDİ (Backend Güvenliği)
             'skills.*.level' => 'required|integer|min:1|max:10',
         ]);
 
@@ -190,6 +186,6 @@ class UserManagementController extends Controller
 
         $user->skills()->sync($syncData);
 
-        return redirect()->back()->with('message', 'User skills and levels updated successfully.');
+        return redirect()->back()->with('message', 'User skills updated successfully.');
     }
 }
