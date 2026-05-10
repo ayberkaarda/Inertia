@@ -38,7 +38,9 @@ class SprintController extends Controller
         Sprint::create($request->all());
         
         SprintUpdated::dispatch();
-        return redirect()->back();
+        
+        // 🎯 DEĞİŞİKLİK: back() yerine doğrudan rotaya yönlendir!
+        return redirect()->route('sprints.index');
     }
 
     public function update(Request $request, Sprint $sprint)
@@ -84,28 +86,27 @@ class SprintController extends Controller
             'user_id' => Auth::id()
         ]);
 
-        // 🌟 SPRINT'İN YETENEKLERİNİ GÖREVE MİRAS BIRAKIYORUZ
+        // SPRINT'İN YETENEKLERİNİ GÖREVE MİRAS BIRAKIYORUZ
         if (!empty($sprint->required_skill)) {
-            // Virgülle ayrılmış stringi diziye çevir
             $itemNames = array_map('trim', explode(',', $sprint->required_skill));
             
-            // 🎯 ÇÖZÜM: pluck('id') sonuna toArray() ekleyerek Laravel'in kafasının karışmasını önlüyoruz!
-            
-            // 1. Yetenekleri (Skills) Bağla
+            // 1. Yetenekleri (Skills) Bağla - toArray() EKLENDİ!
             $skillIds = \App\Models\Skill::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($skillIds)) {
                 $card->requiredSkills()->syncWithoutDetaching($skillIds); 
             }
             
-            // 2. Rozetleri (Badges) Bağla
+            // 2. Rozetleri (Badges) Bağla - toArray() EKLENDİ!
             $badgeIds = \App\Models\Badge::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($badgeIds)) {
                 $card->badges()->syncWithoutDetaching($badgeIds); 
             }
         }
 
-        SprintUpdated::dispatch();
-        return redirect()->back();
+        \App\Events\SprintUpdated::dispatch();
+        
+        // 🚀 ÇÖZÜM BURADA: back() YERİNE DOĞRUDAN ROTAYA YÖNLENDİR!
+        return redirect()->route('sprints.index');
     }
 
     public function updateTask(Request $request, Card $card)
