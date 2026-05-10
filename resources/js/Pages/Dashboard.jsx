@@ -67,9 +67,9 @@ export default function Dashboard({ auth }) {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
                     {[
                         { title: "Match Rate", value: `${stats.skill_match_rate}%`, icon: "⭐" },
-                        { title: "Active", value: stats.active_sprints, icon: "🏃", onClick: () => router.visit(route('sprints.index')), isInteractive: true },
-                        { title: "Alerts", value: stats.bottleneck_alerts, icon: "⚠️" },
-                        { title: "Balance", value: stats.skill_balance, icon: "📊" }
+                        { title: "Active Sprints", value: stats.active_sprints, icon: "🏃", onClick: () => router.visit(route('sprints.index')), isInteractive: true },
+                        { title: "Bottleneck Alerts", value: stats.bottleneck_alerts, icon: "⚠️" },
+                        { title: "Skill Balance", value: stats.skill_balance, icon: "📊" }
                     ].map((card, idx) => (
                         // 🌟 MOBİL UYUM: Padding mobilde p-3/p-4'e indirildi
                         <div key={idx} onClick={card.onClick} className={`bg-[#160d33]/80 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-purple-500/20 flex flex-col sm:flex-row justify-between items-start sm:items-center relative overflow-hidden transition-all ${card.isInteractive ? 'cursor-pointer hover:border-purple-400 hover:scale-105 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : ''}`}>
@@ -91,7 +91,7 @@ export default function Dashboard({ auth }) {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
                             <div>
                                 <h3 className="text-white font-black text-base sm:text-lg">Efficiency Tracking</h3>
-                                <p className="text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">AI Synced Distribution</p>
+                                <p className="text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider"> -- </p>
                             </div>
                             <div className="flex gap-3 sm:gap-4">
                                 <div className="flex items-center gap-1.5 sm:gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span><span className="text-[8px] sm:text-[9px] text-slate-400 font-bold uppercase">Estimated</span></div>
@@ -120,7 +120,7 @@ export default function Dashboard({ auth }) {
                     <div className="bg-[#160d33]/80 backdrop-blur-xl p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-purple-500/20 flex flex-col items-center justify-center text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
                         <h3 className="text-white font-black text-base sm:text-lg mb-1 uppercase tracking-tight">Team Synergy</h3>
-                        <p className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase mb-6 sm:mb-8 tracking-[0.2em]">Global Metric</p>
+                        <p className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase mb-6 sm:mb-8 tracking-[0.2em]">From all projects </p>
                         
                         <div className="relative w-40 h-40 sm:w-48 sm:h-48">
                             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">

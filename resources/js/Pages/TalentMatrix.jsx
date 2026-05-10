@@ -86,7 +86,7 @@ export default function TalentMatrix({
                         <div className="relative z-10 mt-6 sm:mt-8 flex justify-between items-end">
                             <div>
                                 <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight drop-shadow-md leading-none">{talentScore}<span className="text-lg sm:text-xl text-slate-400 font-bold">/10</span></h2>
-                                <p className="text-[10px] sm:text-sm font-bold text-purple-300 sm:text-slate-300 mt-1 sm:mt-2 tracking-widest drop-shadow-sm uppercase">AI Evaluated</p>
+                                <p className="text-[10px] sm:text-sm font-bold text-purple-300 sm:text-slate-300 mt-1 sm:mt-2 tracking-widest drop-shadow-sm uppercase">Improve Yourself.</p>
                             </div>
                             <div className="hidden sm:block text-4xl mb-2 opacity-50 drop-shadow-xl">{talentScore > 7 ? '🚀' : talentScore > 4 ? '⚙️' : '⚠️'}</div>
                         </div>
@@ -108,13 +108,11 @@ export default function TalentMatrix({
                                         <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">{comp.skill}</p>
                                         <p className="text-[9px] sm:text-[11px] font-bold text-purple-400 mt-1 uppercase tracking-wider">Tasks: {comp.tasks}</p>
                                     </div>
-                                    <div className="flex flex-col items-end gap-1.5 sm:gap-2 shrink-0">
-                                        <button className="text-[9px] sm:text-[10px] font-black text-red-500 hover:text-red-400 uppercase tracking-widest flex items-center gap-1 bg-red-500/10 px-2 py-1 rounded-md transition-colors">
-                                            <span className="hidden sm:inline w-1 h-3 bg-red-500 rounded-sm"></span> DEL
-                                        </button>
-                                        <button className="text-[9px] sm:text-[10px] font-black text-slate-300 hover:text-white uppercase tracking-widest flex items-center gap-1 bg-white/5 px-2 py-1 rounded-md transition-colors">
-                                            <span className="hidden sm:inline w-3 h-1 bg-slate-300 rounded-sm transform rotate-45"></span> EDIT
-                                        </button>
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        <span className="text-white text-xs font-bold font-mono w-4">{comp.level}★</span>
+                                        <div className="w-16 sm:w-24 h-1 bg-white/10 rounded-full overflow-hidden">
+                                            <div className="w-full h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
+                                        </div>
                                     </div>
                                 </div>
                             )) : (

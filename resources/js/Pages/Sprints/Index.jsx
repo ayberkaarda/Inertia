@@ -99,7 +99,7 @@ export default function SprintsIndex({
                 {/* 🌟 HEADER: Mobilde buton tam genişlik olur */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 border-b border-purple-500/20 pb-4 gap-4">
                     <div>
-                        <h2 className="text-xl sm:text-3xl font-bold text-white uppercase tracking-tight">Mission Control</h2>
+                        <h2 className="text-xl sm:text-3xl font-bold text-white uppercase tracking-tight">Sprint Task Board </h2>
                         <p className="text-emerald-400 text-[10px] sm:text-xs mt-1 animate-pulse font-black uppercase tracking-widest">🟢 Neural Link Active</p>
                     </div>
                     {realIsAdmin && (
@@ -114,7 +114,7 @@ export default function SprintsIndex({
                     <form onSubmit={submitSprint} className="bg-[#0f0822] p-4 sm:p-6 rounded-2xl border border-emerald-500/30 mb-8 flex flex-col gap-4 sm:gap-6 animate-in fade-in slide-in-from-top-4 shadow-xl">
                         <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
                             <div className="flex-1">
-                                <label className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1.5 block">Mission Codename</label>
+                                <label className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1.5 block">Sprint name</label>
                                 <input type="text" required value={newSprint.name} onChange={e => setNewSprint({...newSprint, name: e.target.value})} className="w-full bg-[#1a0b2e] border border-purple-500/30 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 transition-all" placeholder="Project X..." />
                             </div>
                             <div className="w-full md:w-48">
