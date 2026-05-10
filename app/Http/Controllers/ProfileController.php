@@ -20,49 +20,45 @@ class ProfileController extends Controller
      */
     public function show($id)
     {
-        // 1. Kullanıcıyı bul ve GEREKLİ TÜM İLİŞKİLERİ yükle
         $user = User::with([
-            'badges', 
-            'skills', 
-            'tasks' => function($query) { 
-                $query->orderBy('created_at', 'desc')
-                      ->take(5); // Son 5 görevi al (Timeline için)
-            }
-        ])->findOrFail($id);
-
-        // 2. Sağ taraftaki "Activity Timeline" için görevleri formata sok
-        $recentActivities = $user->tasks->map(function($task) {
-            return [
-                'action' => 'Assigned to Mission',
-                'date' => $task->created_at->diffForHumans(),
-                'description' => "Working on: " . $task->title . " (" . $task->complexity_level . "★ Complexity)"
-            ];
-        })->toArray();
-
-        // Eğer görev yoksa, varsayılan bir başlangıç mesajı atalım
-        if (empty($recentActivities)) {
-            $recentActivities = [[
-                'action' => 'Account Created',
-                'date' => $user->created_at->diffForHumans(),
-                'description' => 'Joined the system and initialized neural link.'
-            ]];
+        'skills', 
+        'badges', 
+        'tasks' => function($query) {
+            $query->where('is_completed', false)->latest()->take(5);
         }
+    ])->findOrFail($id);
 
-        // 3. Veriyi Frontend'e (React'e) gönder
-        return Inertia::render('Profile/Show', [
-            'userProfile' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'avatar' => $user->avatar,
-                'developer_title' => $user->developer_title,
-                'talentScore' => $user->talent_score,
-                'performance' => 85, // İstersen dinamik yapabilirsin
-                'skills' => $user->active_skills, // Sadece süresi dolmamışları yollar
-                'badges' => $user->active_badges, // Sadece süresi dolmamışları yollar
-                'recentActivities' => $recentActivities, 
-            ]
-        ]);
+    // Sağdaki Timeline için görevleri hazırlıyoruz
+    $recentActivities = $user->tasks->map(function($task) {
+        return [
+            'action' => 'Mission In Progress',
+            'date' => $task->created_at->diffForHumans(),
+            'description' => "Currently working on: " . $task->title . " (" . $task->complexity_level . "★)"
+        ];
+    })->toArray();
+
+    if (empty($recentActivities)) {
+        $recentActivities = [[
+            'action' => 'System Initialized',
+            'date' => $user->created_at->diffForHumans(),
+            'description' => 'Profile created and neural link established.'
+        ]];
+    }
+
+    return Inertia::render('Profile/Show', [
+        'userProfile' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar' => $user->avatar,
+            'developer_title' => $user->developer_title,
+            'talentScore' => $user->talent_score,
+            'performance' => 92, 
+            'skills' => $user->active_skills, // 🌟 Süresi dolmamış skiller gider
+            'badges' => $user->active_badges,
+            'recentActivities' => $recentActivities, 
+        ]
+    ]);
     }
 
     /**
