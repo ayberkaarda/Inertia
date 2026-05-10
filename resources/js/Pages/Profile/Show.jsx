@@ -14,7 +14,7 @@ const defaultProfile = {
     skills: [],
     badges: [],
     recentActivities: [],
-    activeSprints: [] // Bunu da ekledik
+    activeSprints: []
 };
 
 export default function Show({ auth, userProfile }) {
@@ -86,8 +86,7 @@ export default function Show({ auth, userProfile }) {
                                 </div>
                             </div>
 
-                            {/* 🌟 YENİ EKLENEN: MESAJ GÖNDER BUTONU */}
-                            {/* Sadece bakan kişi kendi profilinde değilse gösterilir */}
+                            {/* MESAJ GÖNDER BUTONU */}
                             {auth.user.id !== profile.id && (
                                 <Link 
                                     href={`/chat/${profile.id}`} 
@@ -99,7 +98,6 @@ export default function Show({ auth, userProfile }) {
                                     Send a Message
                                 </Link>
                             )}
-
                         </div>
                     </div>
                 </div>
@@ -107,6 +105,8 @@ export default function Show({ auth, userProfile }) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* SOL KOLON */}
                     <div className="lg:col-span-1 flex flex-col gap-6">
+                        
+                        {/* 🌟 ROZETLER (Badges) BÖLÜMÜ */}
                         <div className="bg-[#160d33]/80 backdrop-blur-xl border border-purple-500/20 rounded-3xl p-6 shadow-2xl">
                             <h3 className="text-white font-bold text-sm tracking-wide uppercase mb-6 flex items-center justify-between">
                                 Acquired Badges
@@ -128,6 +128,35 @@ export default function Show({ auth, userProfile }) {
                                 )}
                             </div>
                         </div>
+
+                        {/* 🌟 YENİ: YETENEKLER (Skills) BÖLÜMÜ */}
+                        <div className="bg-[#160d33]/80 backdrop-blur-xl border border-blue-500/20 rounded-3xl p-6 shadow-2xl">
+                            <h3 className="text-white font-bold text-sm tracking-wide uppercase mb-6 flex items-center justify-between">
+                                Active Skills
+                                <span className="text-xs font-normal text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20">
+                                    {profile.skills?.length || 0} Synced
+                                </span>
+                            </h3>
+                            
+                            <div className="flex flex-wrap gap-2">
+                                {profile.skills && profile.skills.length > 0 ? (
+                                    profile.skills.map((skill, idx) => (
+                                        <div key={idx} className="bg-blue-500/10 border border-blue-500/30 rounded-xl px-3 py-2 flex items-center gap-2 hover:bg-blue-500/20 transition-all w-fit">
+                                            <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest">{skill.name}</span>
+                                            {/* Eğer yeteneğin pivotunda level bilgisi varsa göster */}
+                                            {skill.pivot?.proficiency_level && (
+                                                <span className="bg-blue-500/20 text-blue-200 text-[9px] px-1.5 py-0.5 rounded font-bold">
+                                                    LVL {skill.pivot.proficiency_level}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="w-full text-center py-4 text-slate-500 text-xs italic">No active skills found.</div>
+                                )}
+                            </div>
+                        </div>
+
                     </div>
 
                     {/* SAĞ KOLON */}
