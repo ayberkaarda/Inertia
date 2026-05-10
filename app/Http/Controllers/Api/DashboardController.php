@@ -51,7 +51,7 @@ class DashboardController extends Controller
             'skill_balance' => $balanceScore . "/10",
             'efficiency_data' => $chartData,
             
-            'tasks' => \App\Models\Card::with(['users', 'requiredSkills'])->latest()->take(3)->get(),
+            'tasks' => \App\Models\Card::with(['users', 'requiredSkills', 'badges'])->latest()->take(3)->get(),
             'active_sprints_list' => Sprint::where('status', 'active')->with('tasks')->latest()->take(3)->get(),
             'active_sprints' => Sprint::where('status', 'active')->count(),
             'dbTalent' => \App\Models\User::all(['id', 'name', 'email', 'avatar']),
