@@ -97,25 +97,23 @@ class SprintController extends Controller
         $card->description = '';     
         $card->save(); 
 
-        $card->users()->syncWithoutDetaching([\Illuminate\Support\Facades\Auth::id()]);
+        // 🌟 DÜZELTME: Otomatik atama satırını kaldırdık! 🌟
+        // Artık görevi oluşturan kişi otomatik olarak atanmayacak.
+        // Kullanıcılar 'joinTask' metodunu tetikleyen butonla dahil olacaklar.
 
         // SPRINT'İN YETENEKLERİNİ GÖREVE MİRAS BIRAKIYORUZ
         if (!empty($sprint->required_skill)) {
             $itemNames = array_map('trim', explode(',', $sprint->required_skill));
             
-            // 🌟 1. YETENEKLERİ (SKILLS) BAĞLAMA (ÇÖZÜM BURADA)
             $skillIds = \App\Models\Skill::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($skillIds)) {
-                // Laravel'e pivot (ara) tablo verilerini de gönderiyoruz
                 $skillsWithPivot = [];
                 foreach ($skillIds as $id) {
-                    // Varsayılan olarak min_required_level = 1 atıyoruz
                     $skillsWithPivot[$id] = ['min_required_level' => 1]; 
                 }
                 $card->requiredSkills()->syncWithoutDetaching($skillsWithPivot); 
             }
             
-            // 2. ROZETLERİ (BADGES) BAĞLA
             $badgeIds = \App\Models\Badge::whereIn('name', $itemNames)->pluck('id')->toArray();
             if (!empty($badgeIds)) {
                 $card->badges()->syncWithoutDetaching($badgeIds); 
