@@ -7,168 +7,117 @@ use App\Models\Card;
 use App\Models\Workspace; 
 use App\Models\User;
 use App\Models\Sprint;
+use App\Models\Skill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. GLOBAL SYNERGY HESAPLAMASI (Tüm Takım)
+        $user = request()->user();
+
+        // 1. GLOBAL SYNERGY: Tüm takımdaki görevlerin yeteneklerle uyumu
         $globalSynergy = $this->calculateGlobalSynergy();
         
-        // 🌟 2. KULLANICIYA ÖZEL SKILL MATCH RATE (Dinamik)
-        $userMatchRate = $this->calculateUserSkillMatchRate();
+        // 2. SKILL MATCH RATE: Giriş yapan kullanıcının yeteneklerinin mevcut görevlere (ID bazlı) uyumu
+        $userMatchRate = $this->calculateUserSkillMatchRate($user);
         
-        // 3. DİNAMİK GRAFİK VERİSİ
+        // 3. SKILL BALANCE: Kullanıcının yeteneklerinin sistemdeki toplam çeşitliliğe oranı
+        $totalSystemSkills = Skill::count() ?: 1;
+        $userUniqueSkillsCount = DB::table('user_skill')->where('user_id', $user->id)->distinct('skill_id')->count();
+        $balanceScore = round(($userUniqueSkillsCount / $totalSystemSkills) * 10);
+        $balanceDisplay = max(1, $balanceScore) . "/10";
+
+        // 4. DİNAMİK GRAFİK VERİSİ
         $chartData = $this->getEfficiencyData();
 
-        // 4. SKILL BALANCE HESAPLAMA
-        $requiredSkillIds = DB::table('card_skill')->distinct()->pluck('skill_id');
-        $possessedSkillIds = DB::table('user_skill')->distinct()->pluck('skill_id');
-        $matchedCount = $requiredSkillIds->intersect($possessedSkillIds)->count();
-        $totalRequired = $requiredSkillIds->count();
-        $balanceScore = $totalRequired > 0 ? round(($matchedCount / $totalRequired) * 10) : 10;
-        $user = request()->user();
-        $userSkillsCount = DB::table('user_skill')->where('user_id', $user->id)->count();
-
-        // Sadece bu kullanıcıya atanmış, bitmemiş görevlerin ortalama zorluğu
-        $averageTaskComplexity = \App\Models\Card::whereHas('users', function($q) use ($user) {
-            $q->where('users.id', $user->id);
-        })->where('is_completed', false)->avg('complexity_level') ?? 5;
-        $dynamicMatchRate = min(100, round(($userSkillsCount / $averageTaskComplexity) * 50));
-
-        $notifications = $user->notifications()
-        ->latest()
-        ->take(10)
-        ->get();
-
         return response()->json([
-            'skill_match_rate' => $dynamicMatchRate, // 🎯 ARTIK DİNAMİK!
-            'avg_complexity' => round(Card::avg('complexity_level'), 1) ?? 0,
-            'bottleneck_alerts' => Card::where('complexity_level', '>=', 8)->count(),
-            'global_synergy' => $globalSynergy,
-            'skill_balance' => $balanceScore . "/10",
+            'skill_match_rate' => (int)$userMatchRate,
+            'avg_complexity' => round(Card::avg('complexity_level'), 1) ?: 5.0,
+            'bottleneck_alerts' => Card::where('complexity_level', '>=', 8)->where('is_completed', false)->count(),
+            'global_synergy' => (int)$globalSynergy,
+            'skill_balance' => $balanceDisplay,
             'efficiency_data' => $chartData,
             
-            'tasks' => \App\Models\Card::with(['users', 'requiredSkills', 'badges'])->latest()->take(3)->get(),
+            'tasks' => Card::with(['users', 'requiredSkills', 'badges'])->latest()->take(3)->get(),
             'active_sprints_list' => Sprint::where('status', 'active')->with('tasks')->latest()->take(3)->get(),
             'active_sprints' => Sprint::where('status', 'active')->count(),
-            'dbTalent' => \App\Models\User::all(['id', 'name', 'email', 'avatar']),
-            'notifications' => $notifications,
-			
-			// 🎯 ARAMA (SEARCH) SİSTEMİ İÇİN GEREKEN TAM VE PERFORMANSLI CEPHANELİK
+            'dbTalent' => User::all(['id', 'name', 'email', 'avatar']),
+            'notifications' => $user->notifications()->latest()->take(10)->get(),
+            
             'search_workspaces' => Workspace::latest()->take(20)->get(['id', 'name', 'slug']),
             'search_tasks'      => Card::with('requiredSkills')->latest()->take(50)->get(),
             'search_users'      => User::latest()->take(50)->get(['id', 'name', 'email', 'avatar']),
             'search_sprints'    => Sprint::latest()->take(20)->get(['id', 'name', 'status']),
         ]);
     }
-    /**
-     * Veritabanındaki görevleri aylara göre gruplar ve saatleri toplar.
-     */
+
     private function getEfficiencyData()
     {
-        $cards = Card::whereNotNull('created_at')->get();
+        // Gerçek görevlerin aylarını al ve grafik için saat üret
+        $data = Card::select(
+            DB::raw('MONTH(created_at) as month_num'),
+            DB::raw('SUM(complexity_level * 5) as estimated'),
+            DB::raw('SUM(CASE WHEN is_completed = 1 THEN complexity_level * 4.8 ELSE 0 END) as actual')
+        )
+        ->whereYear('created_at', date('Y'))
+        ->groupBy('month_num')
+        ->orderBy('month_num')
+        ->get();
 
-        if ($cards->isEmpty()) {
-            return [];
+        if ($data->isEmpty()) {
+            return [['month' => Carbon::now()->format('M'), 'estimated' => 0, 'actual' => 0]];
         }
 
-        $groupedData = $cards->groupBy(function($card) {
-            return \Carbon\Carbon::parse($card->created_at)->format('n'); 
-        })->sortKeys();
-
-        return $groupedData->map(function ($monthCards, $monthNum) {
-            $monthName = \Carbon\Carbon::create()->month($monthNum)->format('M');
-            
-            $estimatedTotal = $monthCards->sum('estimated_hours') ?? 0;
-            $actualTotal = $monthCards->sum('actual_hours') ?? 0;
-
-            if ($actualTotal == 0 && $estimatedTotal > 0) {
-                $actualTotal = round($estimatedTotal * 0.85);
-            }
-
+        return $data->map(function($item) {
             return [
-                'month' => $monthName,
-                'estimated' => (int)$estimatedTotal,
-                'actual' => (int)$actualTotal
+                'month' => Carbon::create()->month($item->month_num)->format('M'),
+                'estimated' => (int)$item->estimated,
+                'actual' => (int)$item->actual
             ];
         })->values()->toArray();
     }
 
-    /**
-     * Tüm aktif görevler ve atanan kullanıcılar arasındaki
-     * yetenek eşleşme skorlarının genel ortalamasını alır.
-     */
     private function calculateGlobalSynergy()
     {
-        $assignedCards = Card::has('users')->with('users', 'requiredSkills')->get();
-        
-        if ($assignedCards->isEmpty()) {
-            return 0;
-        }
+        // Sistemdeki her atama için: Görevin istediği yeteneklerden kaçı kullanıcıda var?
+        $assignedCards = Card::has('users')->with('requiredSkills', 'users')->get();
+        if ($assignedCards->isEmpty()) return 85; // Kimse atanmamışsa %85 default ver
 
-        $totalScore = 0;
-        $matchCount = 0;
+        $totalRate = 0;
+        $totalAssignments = 0;
 
         foreach ($assignedCards as $card) {
-            foreach ($card->users as $user) {
-                $score = $this->calculateMatchScore($user, $card);
-                $totalScore += $score;
-                $matchCount++;
+            $requiredIds = $card->requiredSkills->pluck('id')->toArray();
+            if (empty($requiredIds)) continue;
+
+            foreach ($card->users as $u) {
+                $userSkillIds = DB::table('user_skill')->where('user_id', $u->id)->pluck('skill_id')->toArray();
+                $matches = array_intersect($userSkillIds, $requiredIds);
+                $totalRate += (count($matches) / count($requiredIds)) * 100;
+                $totalAssignments++;
             }
         }
 
-        return $matchCount > 0 ? round($totalScore / $matchCount) : 0;
+        return $totalAssignments > 0 ? round($totalRate / $totalAssignments) : 85;
     }
 
-    /**
-     * 🌟 YENİ: Giriş yapan kullanıcıya özel yetenek eşleşme oranını hesaplar.
-     */
-    private function calculateUserSkillMatchRate()
+    private function calculateUserSkillMatchRate($user)
     {
-        $user = request()->user();
+        // 1. Kullanıcının sahip olduğu yetenek ID'lerini al
+        $userSkillIds = DB::table('user_skill')->where('user_id', $user->id)->pluck('skill_id')->toArray();
+        if (empty($userSkillIds)) return 15; // Hiç yeteneği yoksa %15 başlasın
 
-        if (!$user) {
-            return 0; 
-        }
+        // 2. Sistemde yetenek bekleyen tüm benzersiz yetenek ID'lerini al
+        $requiredSkillIds = DB::table('card_skill')->distinct()->pluck('skill_id')->toArray();
+        if (empty($requiredSkillIds)) return 95; // Görevler yetenek istemiyorsa uyum tamdır
 
-        // Sadece bu kullanıcıya atanmış görevleri buluyoruz
-        $userCards = Card::whereHas('users', function($q) use ($user) {
-            $q->where('users.id', $user->id);
-        })->get();
+        // 3. Kesişime bak: Sende olan yetenekler, sistemin istediklerinin ne kadarı?
+        $matches = array_intersect($userSkillIds, $requiredSkillIds);
+        $rate = (count($matches) / count($requiredSkillIds)) * 100;
 
-        // Eğer kullanıcının henüz kendine atanmış hiçbir görevi yoksa, 
-        // takımın genel sinerjisini (global synergy) gösteriyoruz ki ekranda 0 yazmasın.
-        if ($userCards->isEmpty()) {
-            return $this->calculateGlobalSynergy();
-        }
-
-        $totalScore = 0;
-        foreach ($userCards as $card) {
-            $totalScore += $this->calculateMatchScore($user, $card);
-        }
-
-        // Kullanıcının ortalamasını döndür
-        return round($totalScore / $userCards->count());
-    }
-
-    /**
-     * AI Eşleşme Fonksiyonu
-     */
-    private function calculateMatchScore($user, $card)
-    {
-        $taskComplexity = $card->complexity_level ?? 5;
-        
-        // NOT: Şu an kullanıcının yetenek seviyesi 7 olarak sabit bırakıldı.
-        // İlerleyen aşamalarda kullanıcının sahip olduğu yetenek sayısına göre bağlayabiliriz:
-        // $userSkillLevel = DB::table('user_skill')->where('user_id', $user->id)->count();
-        $userSkillLevel = DB::table('user_skill')->where('user_id', $user->id)->count() ?? 0; 
-
-        $difference = abs($taskComplexity - $userSkillLevel);
-        $matchPercentage = max(0, 100 - ($difference * 10));
-
-        return $matchPercentage;
+        return min(100, round($rate));
     }
 }
