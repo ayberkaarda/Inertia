@@ -14,12 +14,18 @@ class ObserverMiddleware
         if (Auth::check() && Auth::user()->role === 'observer') {
             // Sadece okuma (GET) isteklerine izin ver, diğerlerini (POST, PUT, DELETE) engelle
             if (!$request->isMethod('get')) {
-                // İstisna: Logout (Çıkış yapma) işlemine izin ver
+                
+                // İstisna 1: Logout (Çıkış yapma) işlemine izin ver
                 if ($request->routeIs('logout')) {
                     return $next($request);
                 }
+
+                // İstisna 2: Chat üzerinden mesaj GÖNDERME işlemine izin ver 💬
+                if ($request->routeIs('chat.store')) {
+                    return $next($request);
+                }
                 
-                return back()->with('error', 'You are in observer mode You cant do that! 🛡️');
+                return back()->with('error', 'You are in observer mode. You cant do that! 🛡️');
             }
         }
 
