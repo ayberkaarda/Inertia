@@ -9,6 +9,10 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // 🌟 SAYFALAMA (PAGINATION) STATELERİ
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6; // Her sayfada 6 kullanıcı gösterilecek
+
     // 🧠 AI Motorunu Tetikleyen Fonksiyon
     const handleAiMatch = async (e) => {
         e.preventDefault();
@@ -17,6 +21,7 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
         setLoading(true);
         setError(null);
         setAiResults(null);
+        setCurrentPage(1); // Yeni aramada her zaman 1. sayfaya dön
 
         try {
             const response = await axios.post('/api/ai/recommendations', {
@@ -28,6 +33,18 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    // 🌟 SAYFALAMA HESAPLAMALARI
+    const totalPages = aiResults ? Math.ceil(aiResults.length / itemsPerPage) : 0;
+    const currentResults = aiResults ? aiResults.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) : [];
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+    };
+
+    const handlePrevPage = () => {
+        if (currentPage > 1) setCurrentPage(currentPage - 1);
     };
 
     return (
@@ -72,63 +89,106 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
 
                     {/* 🚀 AI SONUÇLARI PANELİ */}
                     {aiResults && (
-                        <div className="mt-6 space-y-3 relative z-10 border-t border-white/10 pt-4 animate-fadeIn">
-                            <h4 className="text-xs sm:text-sm font-black text-purple-400 uppercase tracking-wider">
-                                Match Results:
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                                {aiResults.map((result, idx) => (
-                                    <Link 
-                                        href={route('user.profile', result.user_id)}
-                                        key={result.user_id} 
-                                        className={`group block p-3 sm:p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] cursor-pointer ${
-                                            idx === 0 
-                                                ? 'border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
-                                                : 'border-white/5 bg-white/5 hover:bg-white/10'
-                                        }`}
-                                    >
-                                        <div className="flex justify-between items-start gap-2">
-                                            <div className="min-w-0">
-                                                <span className="font-bold text-xs sm:text-sm text-slate-200 block truncate group-hover:text-purple-400 transition-colors">
-                                                    {result.name} {idx === 0 && '👑'}
-                                                </span>
-                                                
-                                                {/* 🌟 YETENEK VE ROZETLERİN BİRLEŞTİĞİ ALAN */}
-                                                <div className="flex flex-wrap gap-1 mt-1.5">
-                                                    {/* 1. Önce Yetenekleri (Skills) Mor Renkte Bas */}
-                                                    {result.matched_skills && result.matched_skills.map((s, i) => (
-                                                        <span key={`skill-${i}`} className="text-[8px] sm:text-[9px] bg-purple-500/10 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/20 font-bold uppercase shadow-sm">
-                                                            {s}
-                                                        </span>
-                                                    ))}
-                                                    
-                                                    {/* 2. Sonra Rozetleri (Badges) Turuncu Renkte Bas */}
-                                                    {result.badges && result.badges.map((badge, i) => (
-                                                        <span key={`badge-${i}`} className="text-[8px] sm:text-[9px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase shadow-sm flex items-center gap-1">
-                                                            {badge}
-                                                        </span>
-                                                    ))}
-                                                </div>
-
-                                            </div>
-                                            <div className="text-right shrink-0">
-                                                <span className={`text-base sm:text-lg font-black ${result.match_score > 70 ? 'text-emerald-400' : result.match_score > 40 ? 'text-amber-400' : 'text-slate-400'}`}>
-                                                    %{result.match_score}
-                                                </span>
-                                                <span className="text-[8px] text-slate-500 block uppercase font-bold tracking-tighter">Match</span>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* İlerleme Çubuğu */}
-                                        <div className="w-full bg-white/5 h-1 rounded-full mt-3 overflow-hidden">
-                                            <div 
-                                                className={`h-full transition-all duration-1000 ${idx === 0 ? 'bg-emerald-500' : 'bg-purple-500'}`} 
-                                                style={{ width: `${result.match_score}%` }}
-                                            />
-                                        </div>
-                                    </Link>
-                                ))}
+                        <div className="mt-6 space-y-4 relative z-10 border-t border-white/10 pt-4 animate-fadeIn">
+                            
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="text-xs sm:text-sm font-black text-purple-400 uppercase tracking-wider">
+                                    Match Results:
+                                </h4>
+                                <span className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider bg-[#0d0722]/50 px-3 py-1 rounded-lg border border-purple-500/10">
+                                    Total Candidates: {aiResults.length}
+                                </span>
                             </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                                {currentResults.map((result, idx) => {
+                                    // 🌟 MUTLAK İNDEKS HESAPLAMASI (Taç Koruması İçin)
+                                    const absoluteIdx = (currentPage - 1) * itemsPerPage + idx;
+                                    const isTopMatch = absoluteIdx === 0;
+
+                                    return (
+                                        <Link 
+                                            href={route('user.profile', result.user_id)}
+                                            key={result.user_id} 
+                                            className={`group block p-3 sm:p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] cursor-pointer ${
+                                                isTopMatch 
+                                                    ? 'border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                                                    : 'border-white/5 bg-white/5 hover:bg-white/10'
+                                            }`}
+                                        >
+                                            <div className="flex justify-between items-start gap-2">
+                                                <div className="min-w-0">
+                                                    <span className="font-bold text-xs sm:text-sm text-slate-200 block truncate group-hover:text-purple-400 transition-colors">
+                                                        {result.name} {isTopMatch && '👑'}
+                                                    </span>
+                                                    
+                                                    {/* YETENEK VE ROZETLERİN BİRLEŞTİĞİ ALAN */}
+                                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                                        {/* 1. Önce Yetenekleri (Skills) Mor Renkte Bas */}
+                                                        {result.matched_skills && result.matched_skills.map((s, i) => (
+                                                            <span key={`skill-${i}`} className="text-[8px] sm:text-[9px] bg-purple-500/10 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/20 font-bold uppercase shadow-sm">
+                                                                {s}
+                                                            </span>
+                                                        ))}
+                                                        
+                                                        {/* 2. Sonra Rozetleri (Badges) Turuncu Renkte Bas */}
+                                                        {result.badges && result.badges.map((badge, i) => (
+                                                            <span key={`badge-${i}`} className="text-[8px] sm:text-[9px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase shadow-sm flex items-center gap-1">
+                                                                {badge}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <span className={`text-base sm:text-lg font-black ${result.match_score > 70 ? 'text-emerald-400' : result.match_score > 40 ? 'text-amber-400' : 'text-slate-400'}`}>
+                                                        %{result.match_score}
+                                                    </span>
+                                                    <span className="text-[8px] text-slate-500 block uppercase font-bold tracking-tighter">Match</span>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* İlerleme Çubuğu */}
+                                            <div className="w-full bg-white/5 h-1 rounded-full mt-3 overflow-hidden">
+                                                <div 
+                                                    className={`h-full transition-all duration-1000 ${isTopMatch ? 'bg-emerald-500' : 'bg-purple-500'}`} 
+                                                    style={{ width: `${result.match_score}%` }}
+                                                />
+                                            </div>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+
+                            {/* 🌟 SAYFALAMA OKLARI (Sadece 1 Sayfadan Fazla Veri Varsa Göster) */}
+                            {totalPages > 1 && (
+                                <div className="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-white/5">
+                                    <button
+                                        onClick={handlePrevPage}
+                                        disabled={currentPage === 1}
+                                        className="p-2 sm:p-2.5 rounded-full bg-[#160d33] hover:bg-purple-500/20 border border-purple-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
+                                    >
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </button>
+
+                                    <span className="text-[10px] sm:text-xs text-purple-300 font-black uppercase tracking-widest bg-[#0d0722]/80 px-4 py-1.5 rounded-xl border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.1)]">
+                                        Page {currentPage} / {totalPages}
+                                    </span>
+
+                                    <button
+                                        onClick={handleNextPage}
+                                        disabled={currentPage === totalPages}
+                                        className="p-2 sm:p-2.5 rounded-full bg-[#160d33] hover:bg-purple-500/20 border border-purple-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
+                                    >
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            )}
+
                         </div>
                     )}
                 </div>
