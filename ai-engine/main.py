@@ -1,15 +1,16 @@
 import os
+import re
 import pandas as pd
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS
 from sklearn.metrics.pairwise import cosine_similarity
 
-app = FastAPI(title="Inertia AI Talent Matrix Engine")
+app = FastAPI(title="Inertia AI Talent Matrix Engine (Advanced NLP)")
 
-# CORS ayarları (Laravel veya React doğrudan bağlanmak isterse diye)
+# CORS ayarları
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,9 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Kaggle / Sentetik Veri Seti Yol Haritası
-# Normalde Kaggle'dan indirdiğin 'skills_dataset.csv' dosyasını buraya koyarsın.
-# Dosya yoksa sistemin çökmemesi için otomatik bir DataFrame oluşturuyoruz.
+# Senin genişletilmiş Kaggle veri setin
 DATASET_PATH = os.path.join(os.path.dirname(__file__), "extended_skill_task_assignment.csv")
 
 if os.path.exists(DATASET_PATH):
@@ -35,6 +34,15 @@ else:
     df_kaggle = pd.DataFrame(kaggle_data)
     df_kaggle.to_csv(DATASET_PATH, index=False)
 
+# 🧠 TÜRKÇE NLP: Özel Dolgu Kelimeleri ve Proje Jargonu Filtresi
+TURKISH_STOP_WORDS = {
+    'acaba', 'ama', 'aslında', 'az', 'bazı', 'belki', 'biri', 'birkaç', 'birşey', 'biz', 'bu', 'çok', 'çünkü', 'da', 'daha', 'de', 'defa', 'diye', 'eğer', 'en', 'gibi', 'hem', 'hep', 'hepsi', 'her', 'hiç', 'için', 'ile', 'ise', 'kez', 'ki', 'kim', 'mı', 'mu', 'mü', 'nasıl', 'ne', 'neden', 'nerde', 'nerede', 'nereye', 'niçin', 'niye', 'o', 'sanki', 'şey', 'siz', 'şu', 'tüm', 've', 'veya', 'ya', 'yani', 'bir', 
+    'yapılacak', 'edilecek', 'kullanılarak', 'kullanılacak', 'kullanarak', 'olarak', 'olan', 'olacak', 'gelişmiş', 'proje', 'projede', 'kısmında', 'tarafında', 'metotları', 'tasarlanacak', 'yapılması', 'gerekir', 'istiyoruz', 'gerekmektedir', 'kapsamında', 'içinde', 'yapı', 'sistem'
+}
+
+# İngilizce ve Türkçe gereksiz kelimeleri birleştir
+ALL_STOP_WORDS = list(ENGLISH_STOP_WORDS.union(TURKISH_STOP_WORDS))
+
 class UserData(BaseModel):
     id: int
     name: str
@@ -46,23 +54,23 @@ class TaskRequest(BaseModel):
 
 @app.post("/api/recommend-user")
 def recommend_user(data: TaskRequest):
-    task_text = data.task_description.lower()
+    # 1. Metin Temizliği (Noktalama işaretlerini ve özel karakterleri sil)
+    clean_task_text = re.sub(r'[^\w\s]', ' ', data.task_description.lower())
     
     user_texts = []
     user_profiles = []
     
     for user in data.users:
-        # Kullanıcının sahip olduğu yetenekleri Kaggle veri setiyle zenginleştiriyoruz
         enriched_skills = []
         for skill in user.skills:
             skill_lower = skill.lower()
             enriched_skills.append(skill_lower)
             
-            # Eğer kullanıcının yeteneği Kaggle veri setinde varsa, kategorisini de metne ekle (Eşleşme doğruluğunu artırır)
+            # Kategoriyi ekleyerek eşleşmeyi güçlendir
             matched = df_kaggle[df_kaggle['skill_name'] == skill_lower]
-            if not matched.empty:
+            if not matched.empty and 'category' in df_kaggle.columns:
                 category = matched.iloc[0]['category']
-                enriched_skills.append(category) # Örn: 'laravel' yanına 'backend' kelimesini de ekliyoruz
+                enriched_skills.append(str(category))
         
         skills_text = " ".join(enriched_skills)
         user_texts.append(skills_text)
@@ -71,29 +79,32 @@ def recommend_user(data: TaskRequest):
     if not user_texts:
         return {"recommendations": []}
 
-    # --- MAKİNE ÖĞRENMESİ TABANLI METİN BENZERLİĞİ ---
-    vectorizer = TfidfVectorizer(stop_words='english')
-    all_texts = [task_text] + user_texts
-    tfidf_matrix = vectorizer.fit_transform(all_texts)
+    # 2. Gelişmiş TF-IDF: Sadece saf yetenek kelimelerini analiz et
+    vectorizer = TfidfVectorizer(stop_words=ALL_STOP_WORDS)
+    all_texts = [clean_task_text] + user_texts
     
-    # İlk satır (görev) ile diğer tüm satırlar (kullanıcılar) arasındaki benzerlik matrisi
-    cosine_similarities = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+    try:
+        tfidf_matrix = vectorizer.fit_transform(all_texts)
+        cosine_similarities = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+    except ValueError:
+        # Eğer cümlenin tamamı "stop_words" ise sistem çökmesin
+        cosine_similarities = [0.0] * len(user_profiles)
     
     recommendations = []
     for idx, user in enumerate(user_profiles):
-        # Yüzdelik skor türetme
-        score = cosine_similarities[idx]
-        match_percentage = round(score * 100, 1)
+        raw_score = cosine_similarities[idx]
         
-        # Eğer hiç eşleşme yoksa (0.0 ise) arka plana göre ufak bir taban şans tanıyalım ya da 0 verelim
-        if match_percentage == 0:
+        # 3. Matematiksel Boost: Kısa metinlerdeki çekingen skoru agresif hale getiriyoruz
+        match_percentage = round((raw_score * 1.5) * 100, 1) 
+        
+        if match_percentage <= 0:
             match_percentage = 5.0
             
-        # Kaggle ağırlıklarına göre skoru manipüle etme (Opsiyonel Gelişmiş Özellik)
+        # Kaggle ağırlıklarına göre skoru manipüle etme
         for skill in user.skills:
             weight_match = df_kaggle[df_kaggle['skill_name'] == skill.lower()]
-            if not weight_match.empty:
-                match_percentage += weight_match.iloc[0]['weight'] * 2
+            if not weight_match.empty and 'weight' in df_kaggle.columns:
+                match_percentage += float(weight_match.iloc[0]['weight']) * 2
         
         match_percentage = min(100.0, round(match_percentage, 1))
 
@@ -104,11 +115,10 @@ def recommend_user(data: TaskRequest):
             "matched_skills": user.skills
         })
         
-    # En yüksek skordan en düşüğe sırala
     recommendations.sort(key=lambda x: x["match_score"], reverse=True)
     
     return {
         "task": data.task_description,
-        "engine": "TF-IDF + Kaggle Matrix Skills Weighting",
+        "engine": "Advanced NLP TF-IDF + TR/EN StopWords",
         "recommendations": recommendations
     }

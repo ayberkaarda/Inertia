@@ -39,17 +39,17 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                 {/* 🧠 KAGGER ML GÖREV EŞLEŞTİRME MOTORU BİLEŞENİ */}
                 <div className="bg-[#160d33]/80 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-purple-500/20 shadow-2xl flex flex-col relative overflow-hidden">
                     <h3 className="text-white font-black text-base sm:text-lg tracking-tight mb-2 uppercase relative z-10 flex items-center gap-2">
-                        🧠 Kaggle ML Predictive Matcher
+                        🧠 Kaggle Predictive Matcher
                     </h3>
                     <p className="text-slate-400 text-xs sm:text-sm mb-4 relative z-10">
-                        Atamak istediğiniz görevin detaylarını yazın; yapay zeka ekibinizin yetenek matrisini Kaggle veri ağırlıklarıyla tarayıp en uygun adayı önersin.
+                        Choose a project task and let our AI analyze the required skills to recommend the best-suited team members from your talent pool. Just describe the task, and watch the magic happen!
                     </p>
 
                     <form onSubmit={handleAiMatch} className="space-y-4 relative z-10">
                         <textarea
                             value={taskDescription}
                             onChange={(e) => setTaskDescription(e.target.value)}
-                            placeholder="Örn: Projenin frontend kısmında React, InertiaJS ve Tailwind CSS kullanarak modern bir dashboard tasarlanacak..."
+                            placeholder="Example: Develop a responsive web application using React and Node.js..."
                             className="w-full p-3 sm:p-4 rounded-xl border border-purple-500/30 bg-[#0d0722]/60 text-white placeholder-slate-500 text-xs sm:text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all resize-none"
                             rows="3"
                             required
@@ -59,7 +59,7 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                             disabled={loading}
                             className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition duration-300 disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
                         >
-                            {loading ? 'Analiz Ediliyor...' : '🎯 En Uygun Adayı Bul'}
+                            {loading ? 'Analyzing...' : '🎯 Find Best Match'}
                         </button>
                     </form>
 
@@ -74,7 +74,7 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                     {aiResults && (
                         <div className="mt-6 space-y-3 relative z-10 border-t border-white/10 pt-4 animate-fadeIn">
                             <h4 className="text-xs sm:text-sm font-black text-purple-400 uppercase tracking-wider">
-                                Eşleşme Sonuçları:
+                                Match Results:
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 {aiResults.map((result, idx) => (
