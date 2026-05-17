@@ -6,11 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Card;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 
 class AiInsightsController extends Controller
 {
+    /**
+     * AI Insights Ana Sayfa Verileri
+     */
     public function index()
     {
         // 1. Talent Optimization Matrix Verileri (Gerçek Algoritmik Veriler)
@@ -50,14 +55,12 @@ class AiInsightsController extends Controller
 
             // Büyüme Oranını (Yüzdesini) Hesapla
             if ($pastScore > 0) {
-                // Matematiksel büyüme formülü: ((Yeni - Eski) / Eski) * 100
                 $growthValue = (($recentScore - $pastScore) / $pastScore) * 100;
             } else {
-                // Eskiden hiç görev yapmamış ama yeni görev yapmışsa baz puan ver
                 $growthValue = $recentScore > 0 ? 15 : 0; 
             }
 
-            // Değeri yuvarla ve UI için formatla (Örn: "+12%" veya "-5%")
+            // Değeri yuvarla ve UI için formatla
             $growthValue = round($growthValue);
             $growthDisplay = ($growthValue > 0 ? '+' : '') . $growthValue . '%';
 
@@ -68,8 +71,8 @@ class AiInsightsController extends Controller
                 'avatar' => $user->avatar,  
                 'skills' => $user->skills->pluck('name')->take(2)->toArray() ?: ['Generalist'],
                 'performance' => round($performance),
-                'growth' => $growthDisplay, // Artık veritabanından dinamik geliyor!
-                'growth_raw' => $growthValue // React tarafında yeşil/kırmızı renk vermek için
+                'growth' => $growthDisplay,
+                'growth_raw' => $growthValue
             ];
         });
 
@@ -98,5 +101,50 @@ class AiInsightsController extends Controller
             'dbTalent' => $dbTalent,
             'dbProjects' => $dbProjects
         ]);
+    }
+
+    /**
+     * 🧠 Yapay Zeka Öneri Motoru Entegrasyonu
+     * Seçilen görevin açıklamasını ve ekip üyelerinin yeteneklerini Python (FastAPI) mikroservisine gönderir.
+     */
+    public function getRecommendations(Request $request)
+    {
+        // 1. Gelen isteğin doğrulamasını yap (Görev açıklaması zorunlu)
+        $request->validate([
+            'task_description' => 'required|string|min:5'
+        ]);
+
+        $taskDescription = $request->input('task_description');
+
+        // 2. Sistemdeki tüm kullanıcıları ve yeteneklerini (Skill) çek ve Python formatına uyarla
+        $users = User::with('skills')->get()->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'skills' => $user->skills->pluck('name')->toArray() ?: ['Generalist']
+            ];
+        });
+
+        // 3. Redis/HTTP Yapısı: Python FastAPI Mikroservisine Güvenli İstek At (Port 5000)
+        try {
+            $response = Http::timeout(5)->post('http://127.0.0.1:5000/api/recommend-user', [
+                'task_description' => $taskDescription,
+                'users' => $users->toArray()
+            ]);
+
+            // Eğer Python motoru başarılı cevap döndüyse veriyi doğrudan React'e postala
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+            
+            return response()->json(['error' => 'Yapay Zeka motoru (FastAPI) şu an yanıt vermiyor.'], 502);
+
+        } catch (\Exception $e) {
+            // Eğer Python servisi başlatılmadıysa veya çöktüyse yakala
+            return response()->json([
+                'error' => 'AI Mikroservisi kapalı veya bağlantı reddedildi. Lütfen sunucuda uvicorn servisinin açık olduğundan emin olun.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
 }
