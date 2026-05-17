@@ -105,18 +105,15 @@ class AiInsightsController extends Controller
 
     /**
      * 🧠 Yapay Zeka Öneri Motoru Entegrasyonu
-     * Seçilen görevin açıklamasını ve ekip üyelerinin yeteneklerini Python (FastAPI) mikroservisine gönderir.
      */
     public function getRecommendations(Request $request)
     {
-        // 1. Gelen isteğin doğrulamasını yap (Görev açıklaması zorunlu)
         $request->validate([
             'task_description' => 'required|string|min:5'
         ]);
 
         $taskDescription = $request->input('task_description');
 
-        // 2. Sistemdeki tüm kullanıcıları ve yeteneklerini (Skill) çek ve Python formatına uyarla
         $users = User::with('skills')->get()->map(function ($user) {
             return [
                 'id' => $user->id,
@@ -125,39 +122,46 @@ class AiInsightsController extends Controller
             ];
         });
 
-        // 3. Redis/HTTP Yapısı: Python FastAPI Mikroservisine Güvenli İstek At (Port 5000)
         try {
             $response = Http::timeout(5)->post('http://127.0.0.1:5000/api/recommend-user', [
                 'task_description' => $taskDescription,
                 'users' => $users->toArray()
             ]);
 
-            // Eğer Python motoru başarılı cevap döndüyse veriyi doğrudan React'e postalamadan önce ROZETLERİ ekle
             if ($response->successful()) {
                 $aiData = $response->json();
 
-                // 🌟 ROZET (BADGE) MANTIĞI BURADA DEVREYE GİRİYOR
+                // 🌟 GERÇEK ROZETLERİ (BADGES) VERİTABANINDAN ÇEKİYORUZ
+                $userIds = collect($aiData['recommendations'])->pluck('user_id');
+                // Kullanıcıları rozetleriyle birlikte veritabanından alıyoruz
+                $usersWithBadges = User::with('badges')->whereIn('id', $userIds)->get()->keyBy('id');
+
                 foreach ($aiData['recommendations'] as &$rec) {
-                    // Python'dan dönen matched_skills dizisi içinde 'generalist' geçiyorsa
                     $isGeneralist = in_array('generalist', array_map('strtolower', $rec['matched_skills']));
                     
                     if ($isGeneralist || empty($rec['matched_skills'])) {
-                        // Generalist olanlara Frontend'de şık duracak varsayılan rozetler veriyoruz
-                        $rec['badges'] = ['🛡️ Rookie', '🌱 Fast Learner'];
+                        // Kullanıcıyı bul
+                        $user = $usersWithBadges->get($rec['user_id']);
+                        
+                        // Veritabanında gerçek rozeti (badge) varsa onları dizi olarak ekle
+                        if ($user && $user->badges->count() > 0) {
+                            $rec['badges'] = $user->badges->pluck('name')->toArray();
+                        } else {
+                            // Rozeti bile yoksa UI'da boş görünmemesi için varsayılan bir uyarı bas
+                            $rec['badges'] = ['NO BADGE']; 
+                        }
                     } else {
-                        // Gerçek yetenekleri olanlarda badge dizisini boş bırakıyoruz ki yetenekleri (React, Laravel vb.) yazılsın
+                        // Yetenekleri (React, Laravel vs) olanlar için rozet kısmını boş bırakıyoruz
                         $rec['badges'] = []; 
                     }
                 }
 
-                // Zenginleştirilmiş veriyi JSON olarak React'e gönder
                 return response()->json($aiData);
             }
             
             return response()->json(['error' => 'FastAPI server is not responding.'], 502);
 
         } catch (\Exception $e) {
-            // Eğer Python servisi başlatılmadıysa veya çöktüyse yakala
             return response()->json([
                 'error' => 'An error occurred while connecting to the AI service. Please ensure the Python FastAPI server is running on port 5000.',
                 'details' => $e->getMessage()

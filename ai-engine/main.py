@@ -97,6 +97,8 @@ def recommend_user(data: TaskRequest):
         # 3. Matematiksel Boost: Kısa metinlerdeki çekingen skoru agresif hale getiriyoruz
         match_percentage = round((raw_score * 1.5) * 100, 1) 
         
+        if match_percentage < 0:
+            match_percentage = 0.0
             
         # Kaggle ağırlıklarına göre skoru manipüle etme
         for skill in user.skills:
