@@ -78,7 +78,6 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 {aiResults.map((result, idx) => (
-                                    {/* 🌟 DİKKAT: div yerine Link kullanıldı. Kartlar artık tıklanabilir! */}
                                     <Link 
                                         href={route('user.profile', result.user_id)}
                                         key={result.user_id} 
@@ -94,7 +93,6 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                                                     {result.name} {idx === 0 && '👑'}
                                                 </span>
                                                 <div className="flex flex-wrap gap-1 mt-1.5">
-                                                    {/* 🌟 ROZET (BADGE) MANTIĞI */}
                                                     {result.badges && result.badges.length > 0 ? (
                                                         result.badges.map((badge, i) => (
                                                             <span key={`badge-${i}`} className="text-[8px] sm:text-[9px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase">
@@ -118,7 +116,6 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                                             </div>
                                         </div>
                                         
-                                        {/* İlerleme Çubuğu */}
                                         <div className="w-full bg-white/5 h-1 rounded-full mt-3 overflow-hidden">
                                             <div 
                                                 className={`h-full transition-all duration-1000 ${idx === 0 ? 'bg-emerald-500' : 'bg-purple-500'}`} 
