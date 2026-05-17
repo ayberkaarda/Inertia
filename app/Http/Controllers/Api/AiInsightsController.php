@@ -132,17 +132,34 @@ class AiInsightsController extends Controller
                 'users' => $users->toArray()
             ]);
 
-            // Eğer Python motoru başarılı cevap döndüyse veriyi doğrudan React'e postala
+            // Eğer Python motoru başarılı cevap döndüyse veriyi doğrudan React'e postalamadan önce ROZETLERİ ekle
             if ($response->successful()) {
-                return response()->json($response->json());
+                $aiData = $response->json();
+
+                // 🌟 ROZET (BADGE) MANTIĞI BURADA DEVREYE GİRİYOR
+                foreach ($aiData['recommendations'] as &$rec) {
+                    // Python'dan dönen matched_skills dizisi içinde 'generalist' geçiyorsa
+                    $isGeneralist = in_array('generalist', array_map('strtolower', $rec['matched_skills']));
+                    
+                    if ($isGeneralist || empty($rec['matched_skills'])) {
+                        // Generalist olanlara Frontend'de şık duracak varsayılan rozetler veriyoruz
+                        $rec['badges'] = ['🛡️ Rookie', '🌱 Fast Learner'];
+                    } else {
+                        // Gerçek yetenekleri olanlarda badge dizisini boş bırakıyoruz ki yetenekleri (React, Laravel vb.) yazılsın
+                        $rec['badges'] = []; 
+                    }
+                }
+
+                // Zenginleştirilmiş veriyi JSON olarak React'e gönder
+                return response()->json($aiData);
             }
             
-            return response()->json(['error' => 'Yapay Zeka motoru (FastAPI) şu an yanıt vermiyor.'], 502);
+            return response()->json(['error' => 'FastAPI server is not responding.'], 502);
 
         } catch (\Exception $e) {
             // Eğer Python servisi başlatılmadıysa veya çöktüyse yakala
             return response()->json([
-                'error' => 'AI Mikroservisi kapalı veya bağlantı reddedildi. Lütfen sunucuda uvicorn servisinin açık olduğundan emin olun.',
+                'error' => 'An error occurred while connecting to the AI service. Please ensure the Python FastAPI server is running on port 5000.',
                 'details' => $e->getMessage()
             ], 500);
         }

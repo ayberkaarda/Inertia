@@ -78,25 +78,36 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 {aiResults.map((result, idx) => (
-                                    <div 
+                                    {/* 🌟 DİKKAT: div yerine Link kullanıldı. Kartlar artık tıklanabilir! */}
+                                    <Link 
+                                        href={route('user.profile', result.user_id)}
                                         key={result.user_id} 
-                                        className={`p-3 sm:p-4 rounded-xl border transition-all duration-300 ${
+                                        className={`group block p-3 sm:p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] cursor-pointer ${
                                             idx === 0 
                                                 ? 'border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
-                                                : 'border-white/5 bg-white/5'
+                                                : 'border-white/5 bg-white/5 hover:bg-white/10'
                                         }`}
                                     >
                                         <div className="flex justify-between items-start gap-2">
                                             <div className="min-w-0">
-                                                <span className="font-bold text-xs sm:text-sm text-slate-200 block truncate">
+                                                <span className="font-bold text-xs sm:text-sm text-slate-200 block truncate group-hover:text-purple-400 transition-colors">
                                                     {result.name} {idx === 0 && '👑'}
                                                 </span>
                                                 <div className="flex flex-wrap gap-1 mt-1.5">
-                                                    {result.matched_skills.map((s, i) => (
-                                                        <span key={i} className="text-[8px] sm:text-[9px] bg-purple-500/10 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/20 font-bold uppercase">
-                                                            {s}
-                                                        </span>
-                                                    ))}
+                                                    {/* 🌟 ROZET (BADGE) MANTIĞI */}
+                                                    {result.badges && result.badges.length > 0 ? (
+                                                        result.badges.map((badge, i) => (
+                                                            <span key={`badge-${i}`} className="text-[8px] sm:text-[9px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase">
+                                                                {badge}
+                                                            </span>
+                                                        ))
+                                                    ) : (
+                                                        result.matched_skills.map((s, i) => (
+                                                            <span key={`skill-${i}`} className="text-[8px] sm:text-[9px] bg-purple-500/10 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/20 font-bold uppercase">
+                                                                {s}
+                                                            </span>
+                                                        ))
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="text-right shrink-0">
@@ -114,7 +125,7 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                                                 style={{ width: `${result.match_score}%` }}
                                             />
                                         </div>
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </div>
