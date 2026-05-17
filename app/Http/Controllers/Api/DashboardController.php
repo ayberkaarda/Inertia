@@ -16,21 +16,22 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // 💀 SESSİZ PASLANMA MOTORUNU ÇALIŞTIR (Kullanıcı dashboard'a girdiğinde temizlik başlar)
+        // 💀 SESSİZ PASLANMA MOTORUNU ÇALIŞTIR
         $this->processSkillDecay();
 
         $user = request()->user();
+        
+        // Kullanıcının yetenek ve rozetlerini önden yüklüyoruz (Algoritma için gerekli)
+        $user->loadMissing(['skills', 'badges']);
 
-        // 1. GLOBAL SYNERGY: Tüm takımdaki görevlerin yeteneklerle uyumu
+        // 1. GLOBAL SYNERGY
         $globalSynergy = $this->calculateGlobalSynergy();
         
-        // 2. SKILL MATCH RATE: Giriş yapan kullanıcının AKTİF yeteneklerinin mevcut görevlere uyumu
+        // 2. SKILL MATCH RATE
         $userMatchRate = $this->calculateUserSkillMatchRate($user);
         
-        // 3. SKILL BALANCE: Kullanıcının AKTİF yeteneklerinin sistemdeki toplam çeşitliliğe oranı
+        // 3. SKILL BALANCE
         $totalSystemSkills = Skill::count() ?: 1;
-        
-        // 🌟 GÜNCELLENDİ: Sadece süresi geçmemiş (aktif) yetenekleri say
         $userUniqueSkillsCount = DB::table('user_skill')
             ->where('user_id', $user->id)
             ->where(function($q) {
@@ -46,6 +47,12 @@ class DashboardController extends Controller
         // 4. DİNAMİK GRAFİK VERİSİ
         $chartData = $this->getEfficiencyData();
 
+        // 🌟 ZOMBİ KALKANI: Sadece aktif sprintlerin ID'lerini al
+        $activeSprintIds = Sprint::where('status', 'active')->pluck('id')->toArray();
+
+        // 🌟 AKILLI ÖNERİ MOTORU: Kullanıcının Yetenek + Rozetlerine göre aktif görevleri tara
+        $smartSuggestion = $this->getSmartSuggestion($user, $activeSprintIds);
+
         return response()->json([
             'skill_match_rate' => (int)$userMatchRate,
             'avg_complexity' => round(Card::avg('complexity_level'), 1) ?: 5.0,
@@ -54,9 +61,19 @@ class DashboardController extends Controller
             'skill_balance' => $balanceDisplay,
             'efficiency_data' => $chartData,
             
-            'tasks' => Card::with(['users', 'requiredSkills', 'badges'])->latest()->take(3)->get(),
+            // 🌟 FİLTRELENDİ: Sadece aktif sprintteki bitmemiş görevleri tabloya bas
+            'tasks' => Card::with(['users', 'requiredSkills', 'badges'])
+                ->where('is_completed', false)
+                ->whereIn('sprint_id', $activeSprintIds)
+                ->latest()
+                ->take(3)
+                ->get(),
+                
+            // 🌟 YENİ EKLENDİ: Ekrana basılacak en uygun görev
+            'smart_suggestion' => $smartSuggestion,
+
             'active_sprints_list' => Sprint::where('status', 'active')->with('tasks')->latest()->take(3)->get(),
-            'active_sprints' => Sprint::where('status', 'active')->count(),
+            'active_sprints' => count($activeSprintIds),
             'dbTalent' => User::all(['id', 'name', 'email', 'avatar']),
             'notifications' => $user->notifications()->latest()->take(10)->get(),
             
@@ -66,6 +83,63 @@ class DashboardController extends Controller
             'search_sprints'    => Sprint::latest()->take(20)->get(['id', 'name', 'status']),
         ]);
     }
+
+    /**
+     * 🧠 SMART SUGGESTION MOTORU (Sadece Aktif Görevler İçin)
+     * Kullanıcının yetenek ve rozetlerini birleştirip en yüksek eşleşen görevi bulur.
+     */
+    private function getSmartSuggestion($user, $activeSprintIds)
+    {
+        // Kullanıcının yeteneklerini ve rozetlerini küçük harfe çevirip tek bir havuzda birleştiriyoruz
+        $userKeywords = array_merge(
+            $user->skills->pluck('name')->map(fn($s) => strtolower($s))->toArray(),
+            $user->badges->pluck('name')->map(fn($b) => strtolower($b))->toArray()
+        );
+
+        // Sadece AKTİF sprintlerdeki ve bitmemiş görevleri çek
+        $activeCards = Card::with('requiredSkills')
+            ->where('is_completed', false)
+            ->whereIn('sprint_id', $activeSprintIds)
+            ->get();
+
+        if ($activeCards->isEmpty()) {
+            return null; // Aktif görev yoksa önerme
+        }
+
+        $bestCard = null;
+        $bestMatchRate = 0;
+
+        foreach ($activeCards as $card) {
+            $reqSkills = $card->requiredSkills->pluck('name')->map(fn($s) => strtolower($s))->toArray();
+            
+            // Eğer görevin hiçbir yetenek gereksinimi yoksa, herkes için %50 temel eşleşme ver
+            if (empty($reqSkills)) {
+                $matchRate = 50; 
+            } else {
+                // Görevin istediği yeteneklerle, kullanıcının rozet+yetenek havuzunu kesiştir
+                $intersect = array_intersect($userKeywords, $reqSkills);
+                $matchRate = (count($intersect) / count($reqSkills)) * 100;
+            }
+
+            // En yüksek eşleşmeyi bul
+            if ($matchRate >= $bestMatchRate) {
+                $bestMatchRate = $matchRate;
+                $bestCard = $card;
+            }
+        }
+
+        // Eğer en iyi eşleşme %0 ise (adamın hiçbir alakası yoksa) null dön, alakasız görev önerme
+        if ($bestMatchRate == 0 && count($userKeywords) > 0) {
+            return null;
+        }
+
+        return [
+            'card' => $bestCard,
+            'match_rate' => round($bestMatchRate)
+        ];
+    }
+
+    // --- AŞAĞIDAKİ YARDIMCI FONKSİYONLARIN AYNI KALDI ---
 
     private function getEfficiencyData()
     {
@@ -143,13 +217,8 @@ class DashboardController extends Controller
         return min(100, round($rate));
     }
 
-    /**
-     * 💀 SESSİZ PASLANMA MOTORU (Decay Engine)
-     * Kullanıcının süresi dolmuş yeteneklerini kontrol eder ve RPG mantığıyla düşürür.
-     */
     private function processSkillDecay()
     {
-        // Süresi dolmuş olan (expires_at tarihi geçmiş) yetenekleri bul
         $expiredSkills = DB::table('user_skill')
             ->whereNotNull('expires_at')
             ->where('expires_at', '<', Carbon::now())
@@ -157,10 +226,7 @@ class DashboardController extends Controller
 
         foreach ($expiredSkills as $skill) {
             if ($skill->proficiency_level > 1) {
-                // Eğer level 1'den büyükse: 1 level düş, görev sayacını sıfırla
                 $newLevel = $skill->proficiency_level - 1;
-                
-                // Eğer 1. levele düştüyse ona son bir şans olarak 30 gün ver, yoksa standart 15 gün bekleme süresi ver
                 $newExpiresAt = $newLevel == 1 ? Carbon::now()->addDays(30) : Carbon::now()->addDays(15);
 
                 DB::table('user_skill')
@@ -168,11 +234,10 @@ class DashboardController extends Controller
                     ->where('skill_id', $skill->skill_id)
                     ->update([
                         'proficiency_level' => $newLevel,
-                        'tasks_completed' => 0, // XP Sıfırlandı
+                        'tasks_completed' => 0, 
                         'expires_at' => $newExpiresAt
                     ]);
             } else {
-                // Eğer zaten Level 1 ise ve süresi dolmuşsa yetenek tamamen paslanıp kaybolur
                 DB::table('user_skill')
                     ->where('user_id', $skill->user_id)
                     ->where('skill_id', $skill->skill_id)
