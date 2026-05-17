@@ -91,6 +91,10 @@ def recommend_user(data: TaskRequest):
         cosine_similarities = [0.0] * len(user_profiles)
     
     recommendations = []
+    
+    # Görevdeki kelimeleri (react, css, html vs) ayır ve listele
+    task_words = set(re.findall(r'\w+', clean_task_text))
+    
     for idx, user in enumerate(user_profiles):
         raw_score = cosine_similarities[idx]
         
@@ -100,12 +104,27 @@ def recommend_user(data: TaskRequest):
         if match_percentage < 0:
             match_percentage = 0.0
             
+        # 🎯 YENİ: KESKİN NİŞANCI (DIRECT HIT) ALGORİTMASI
+        # Kullanıcının tüm yetenek ve rozetlerini (Laravel'den birleşik geliyor) tek bir metin yapıyoruz
+        user_skill_string = " ".join(user.skills).lower()
+        
+        hit_count = 0
+        for word in task_words:
+            # Eğer aranan kelime (örn: 'html'), kullanıcının yetenekleri içinde varsa
+            if len(word) > 2 and word in user_skill_string:
+                hit_count += 1
+                
+        # Bulduğu her eşleşen yetenek/rozet kelimesi için skora doğrudan agresif Puan ekle!
+        if hit_count > 0:
+            match_percentage += (hit_count * 25.0)
+            
         # Kaggle ağırlıklarına göre skoru manipüle etme
         for skill in user.skills:
             weight_match = df_kaggle[df_kaggle['skill_name'] == skill.lower()]
             if not weight_match.empty and 'weight' in df_kaggle.columns:
                 match_percentage += float(weight_match.iloc[0]['weight']) * 2
         
+        # Maksimum sınır %100
         match_percentage = min(100.0, round(match_percentage, 1))
 
         recommendations.append({
@@ -119,6 +138,6 @@ def recommend_user(data: TaskRequest):
     
     return {
         "task": data.task_description,
-        "engine": "Advanced NLP TF-IDF + TR/EN StopWords",
+        "engine": "Advanced NLP TF-IDF + Direct Hit Booster",
         "recommendations": recommendations
     }

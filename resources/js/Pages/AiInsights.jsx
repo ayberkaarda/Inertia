@@ -92,21 +92,24 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                                                 <span className="font-bold text-xs sm:text-sm text-slate-200 block truncate group-hover:text-purple-400 transition-colors">
                                                     {result.name} {idx === 0 && '👑'}
                                                 </span>
+                                                
+                                                {/* 🌟 YETENEK VE ROZETLERİN BİRLEŞTİĞİ ALAN */}
                                                 <div className="flex flex-wrap gap-1 mt-1.5">
-                                                    {result.badges && result.badges.length > 0 ? (
-                                                        result.badges.map((badge, i) => (
-                                                            <span key={`badge-${i}`} className="text-[8px] sm:text-[9px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase">
-                                                                {badge}
-                                                            </span>
-                                                        ))
-                                                    ) : (
-                                                        result.matched_skills.map((s, i) => (
-                                                            <span key={`skill-${i}`} className="text-[8px] sm:text-[9px] bg-purple-500/10 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/20 font-bold uppercase">
-                                                                {s}
-                                                            </span>
-                                                        ))
-                                                    )}
+                                                    {/* 1. Önce Yetenekleri (Skills) Mor Renkte Bas */}
+                                                    {result.matched_skills && result.matched_skills.map((s, i) => (
+                                                        <span key={`skill-${i}`} className="text-[8px] sm:text-[9px] bg-purple-500/10 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/20 font-bold uppercase shadow-sm">
+                                                            {s}
+                                                        </span>
+                                                    ))}
+                                                    
+                                                    {/* 2. Sonra Rozetleri (Badges) Turuncu Renkte Bas */}
+                                                    {result.badges && result.badges.map((badge, i) => (
+                                                        <span key={`badge-${i}`} className="text-[8px] sm:text-[9px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase shadow-sm flex items-center gap-1">
+                                                            {badge}
+                                                        </span>
+                                                    ))}
                                                 </div>
+
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <span className={`text-base sm:text-lg font-black ${result.match_score > 70 ? 'text-emerald-400' : result.match_score > 40 ? 'text-amber-400' : 'text-slate-400'}`}>
@@ -116,6 +119,7 @@ export default function AiInsights({ auth, dbTalent = [], dbProjects = [] }) {
                                             </div>
                                         </div>
                                         
+                                        {/* İlerleme Çubuğu */}
                                         <div className="w-full bg-white/5 h-1 rounded-full mt-3 overflow-hidden">
                                             <div 
                                                 className={`h-full transition-all duration-1000 ${idx === 0 ? 'bg-emerald-500' : 'bg-purple-500'}`} 

@@ -114,11 +114,15 @@ class AiInsightsController extends Controller
 
         $taskDescription = $request->input('task_description');
 
-        $users = User::with('skills')->get()->map(function ($user) {
+        // 1. YAPAY ZEKAYA GİDERKEN: Hem Yetenekleri Hem Rozetleri birleştirip yolla!
+        $users = User::with(['skills', 'badges'])->get()->map(function ($user) {
+            $userSkills = $user->skills->pluck('name')->toArray();
+            $userBadges = $user->badges->pluck('name')->toArray();
             return [
                 'id' => $user->id,
                 'name' => $user->name,
-                'skills' => $user->skills->pluck('name')->toArray() ?: ['Generalist']
+                // AI'nin ikisini de taraması için birleştiriyoruz
+                'skills' => array_merge($userSkills, $userBadges) ?: ['Generalist'] 
             ];
         });
 
@@ -131,41 +135,34 @@ class AiInsightsController extends Controller
             if ($response->successful()) {
                 $aiData = $response->json();
 
-                // 🌟 GERÇEK ROZETLERİ (BADGES) VERİTABANINDAN ÇEKİYORUZ
+                // 2. YAPAY ZEKADAN DÖNERKEN: UI için Skills ve Badges'i tekrar ayır
                 $userIds = collect($aiData['recommendations'])->pluck('user_id');
-                // Kullanıcıları rozetleriyle birlikte veritabanından alıyoruz
-                $usersWithBadges = User::with('badges')->whereIn('id', $userIds)->get()->keyBy('id');
+                $usersDb = User::with(['skills', 'badges'])->whereIn('id', $userIds)->get()->keyBy('id');
 
                 foreach ($aiData['recommendations'] as &$rec) {
-                    $isGeneralist = in_array('generalist', array_map('strtolower', $rec['matched_skills']));
+                    $user = $usersDb->get($rec['user_id']);
                     
-                    if ($isGeneralist || empty($rec['matched_skills'])) {
-                        // Kullanıcıyı bul
-                        $user = $usersWithBadges->get($rec['user_id']);
-                        
-                        // Veritabanında gerçek rozeti (badge) varsa onları dizi olarak ekle
-                        if ($user && $user->badges->count() > 0) {
-                            $rec['badges'] = $user->badges->pluck('name')->toArray();
+                    if ($user) {
+                        $actualSkills = $user->skills->pluck('name')->toArray();
+                        $actualBadges = $user->badges->pluck('name')->toArray();
+
+                        // Eğer ikisi de boşsa Rookie rozetini bas
+                        if (empty($actualSkills) && empty($actualBadges)) {
+                            $rec['matched_skills'] = [];
+                            $rec['badges'] = ['🛡️ Rookie', '🌱 Fast Learner'];
                         } else {
-                            // Rozeti bile yoksa UI'da boş görünmemesi için varsayılan bir uyarı bas
-                            $rec['badges'] = ['NO BADGE']; 
+                            // Değilse gerçek verileri ata
+                            $rec['matched_skills'] = $actualSkills; 
+                            $rec['badges'] = $actualBadges; 
                         }
-                    } else {
-                        // Yetenekleri (React, Laravel vs) olanlar için rozet kısmını boş bırakıyoruz
-                        $rec['badges'] = []; 
                     }
                 }
 
                 return response()->json($aiData);
             }
-            
             return response()->json(['error' => 'FastAPI server is not responding.'], 502);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'An error occurred while connecting to the AI service. Please ensure the Python FastAPI server is running on port 5000.',
-                'details' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => 'AI Server Down.', 'details' => $e->getMessage()], 500);
         }
     }
 }
