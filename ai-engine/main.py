@@ -21,7 +21,7 @@ app.add_middleware(
 # Kaggle / Sentetik Veri Seti Yol Haritası
 # Normalde Kaggle'dan indirdiğin 'skills_dataset.csv' dosyasını buraya koyarsın.
 # Dosya yoksa sistemin çökmemesi için otomatik bir DataFrame oluşturuyoruz.
-DATASET_PATH = os.path.join(os.path.dirname(__file__), "storage/app/datasets/extended_skill_task_assignment.csv")
+DATASET_PATH = os.path.join(os.path.dirname(__file__), "extended_skill_task_assignment.csv")
 
 if os.path.exists(DATASET_PATH):
     df_kaggle = pd.read_csv(DATASET_PATH)
