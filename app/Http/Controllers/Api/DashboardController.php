@@ -72,7 +72,7 @@ class DashboardController extends Controller
             // 🌟 YENİ EKLENDİ: Ekrana basılacak en uygun görev
             'smart_suggestion' => $smartSuggestion,
 
-            'active_sprints_list' => Sprint::where('status', 'active')->with('tasks')->latest()->take(3)->get(),
+            'active_sprints_list' => Sprint::where('status', 'active')->with('tasks.users')->latest()->take(3)->get(),
             'active_sprints' => count($activeSprintIds),
             'dbTalent' => User::all(['id', 'name', 'email', 'avatar']),
             'notifications' => $user->notifications()->latest()->take(10)->get(),
