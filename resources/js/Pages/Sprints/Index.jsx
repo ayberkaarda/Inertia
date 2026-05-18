@@ -22,7 +22,7 @@ export default function SprintsIndex({
 
     // 🌟 DÜZENLEME (EDIT) STATELERİ
     const [editingSprintId, setEditingSprintId] = useState(null);
-    const [editSprintData, setEditSprintData] = useState({ name: '', end_date: '' });
+    const [editSprintData, setEditSprintData] = useState({ name: '', end_date: '', badges: [], skills: [] });
 
     const [editingTaskId, setEditingTaskId] = useState(null);
     const [editTaskData, setEditTaskData] = useState({ title: '', complexity_level: 5 });
@@ -31,8 +31,8 @@ export default function SprintsIndex({
         const styles = {
             active: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 hover:bg-emerald-500/30',
             planned: 'bg-blue-500/20 text-blue-400 border-blue-500/50 hover:bg-blue-500/30',
-            completed: 'bg-purple-500/20 text-purple-400 border-purple-500/50',
-            expired: 'bg-red-500/20 text-red-400 border-red-500/50 line-through'
+            completed: 'bg-purple-500/20 text-purple-400 border-purple-500/50 hover:bg-purple-500/30',
+            expired: 'bg-red-500/20 text-red-400 border-red-500/50 hover:bg-red-500/30 line-through'
         };
         return styles[status] || 'bg-slate-500/20 text-slate-400';
     };
@@ -67,13 +67,31 @@ export default function SprintsIndex({
         });
     };
 
+    // 🌟 SPRINT DÜZENLEMEYİ BAŞLATIRKEN MEVCUT SKILL VE BADGELERİ PARSE EDİYORUZ
     const startEditSprint = (sprint) => {
+        const currentSkillsAndBadges = sprint.required_skill ? sprint.required_skill.split(',').map(s => s.trim()) : [];
+        const currentBadges = currentSkillsAndBadges.filter(s => availableBadges.includes(s));
+        const currentSkills = currentSkillsAndBadges.filter(s => availableSkills.includes(s));
+
         setEditingSprintId(sprint.id);
-        setEditSprintData({ name: sprint.name, end_date: sprint.end_date });
+        setEditSprintData({ 
+            name: sprint.name, 
+            end_date: sprint.end_date,
+            badges: currentBadges,
+            skills: currentSkills
+        });
     };
 
     const saveSprintEdit = (id) => {
-        router.put(`/sprints/${id}`, editSprintData, {
+        const payload = {
+            name: editSprintData.name,
+            end_date: editSprintData.end_date,
+            badges: editSprintData.badges.join(', '),
+            core_skills: editSprintData.skills.join(', '),
+            required_skill: [...editSprintData.badges, ...editSprintData.skills].join(', ')
+        };
+
+        router.put(`/sprints/${id}`, payload, {
             preserveScroll: true,
             onSuccess: () => setEditingSprintId(null)
         });
@@ -85,13 +103,19 @@ export default function SprintsIndex({
         }
     };
 
+    // 🌟 ZOMBİ DİRİLTME MANTIĞI: Durum Değiştirme Döngüsü
     const toggleStatus = (id, currentStatus) => {
-        if (currentStatus === 'expired' || currentStatus === 'completed') return;
-        const nextStatus = currentStatus === 'planned' ? 'active' : 'completed';
+        if (!realIsAdmin) return;
+
+        let nextStatus = 'active';
+        if (currentStatus === 'planned') nextStatus = 'active';
+        if (currentStatus === 'active') nextStatus = 'completed';
+        if (currentStatus === 'completed') nextStatus = 'expired';
+        if (currentStatus === 'expired') nextStatus = 'active'; // Kırmızıdan Yeşile Diriltme!
         
-        const confirmMsg = nextStatus === 'completed' 
-            ? "Sprint'i tamamlamak içindeki tüm görevleri kilitler. Devam edilsin mi?" 
-            : `Sprint durumunu '${nextStatus}' yap?`;
+        let confirmMsg = `Sprint durumunu '${nextStatus}' olarak değiştirmek istiyor musunuz?`;
+        if (nextStatus === 'completed') confirmMsg = "Sprint'i tamamlamak içindeki tüm görevleri kilitler. Devam edilsin mi?";
+        if (currentStatus === 'expired' && nextStatus === 'active') confirmMsg = "Bu süresi dolmuş sprinti tekrar AKTİF (Active) hale getirmek istediğinize emin misiniz?";
 
         if (window.confirm(confirmMsg)) {
             router.put(`/sprints/${id}/status`, { status: nextStatus }, { preserveScroll: true });
@@ -139,6 +163,14 @@ export default function SprintsIndex({
             ? newSprint[type].filter(i => i !== item) 
             : [...newSprint[type], item];
         setNewSprint({ ...newSprint, [type]: list });
+    };
+
+    // 🌟 DÜZENLEME MODU İÇİN ÖZEL TOGGLE FONKSİYONU
+    const toggleEditItem = (item, type) => {
+        const list = editSprintData[type].includes(item)
+            ? editSprintData[type].filter(i => i !== item)
+            : [...editSprintData[type], item];
+        setEditSprintData({ ...editSprintData, [type]: list });
     };
 
     const checkUserAccess = (sprint) => {
@@ -210,24 +242,52 @@ export default function SprintsIndex({
                         return (
                             <div key={sprint.id} className={`bg-[#0f0822] border rounded-2xl p-4 sm:p-6 shadow-lg flex flex-col transition-all relative h-full min-h-[420px] ${isSprintOver ? 'border-slate-700/50 bg-[#0a0516]' : 'border-purple-500/20 hover:border-purple-500/40'}`}>
                                 
-                                {/* 🌟 DÜZENLEME MODU (SPRINT) */}
+                                {/* 🌟 DÜZENLEME MODU (SPRINT - GENİŞ KONTEYNER TASARIM) */}
                                 {editingSprintId === sprint.id ? (
-                                    <div className="w-full flex flex-col gap-2 mb-4 border-b border-blue-500/20 pb-3 shrink-0 animate-fadeIn">
-                                        <div className="text-[10px] font-black text-blue-400 uppercase tracking-wider">Edit Sprint Arsenal</div>
+                                    <div className="w-full flex flex-col gap-3 mb-4 border-b border-blue-500/30 pb-4 shrink-0 animate-fadeIn relative z-20 bg-[#160d33]/90 p-4 rounded-xl">
+                                        <div className="text-[10px] font-black text-blue-400 uppercase tracking-wider">Modify Sprint Blueprint</div>
+                                        
                                         <div className="flex flex-col sm:flex-row gap-2 w-full">
-                                            <input type="text" value={editSprintData.name} onChange={e => setEditSprintData({...editSprintData, name: e.target.value})} className="bg-[#1a0b2e] border border-blue-500/50 rounded-lg text-xs sm:text-sm text-white px-3 py-2 outline-none focus:ring-1 focus:ring-blue-500 flex-1 min-w-0" placeholder="Sprint Name" />
-                                            <input type="date" value={editSprintData.end_date} onChange={e => setEditSprintData({...editSprintData, end_date: e.target.value})} className="bg-[#1a0b2e] border border-blue-500/50 rounded-lg text-xs sm:text-sm text-white px-3 py-2 outline-none [color-scheme:dark] w-full sm:w-40 shrink-0" />
+                                            <div className="flex-1">
+                                                <label className="text-[8px] font-bold text-slate-500 uppercase block mb-1">Sprint Name</label>
+                                                <input type="text" value={editSprintData.name} onChange={e => setEditSprintData({...editSprintData, name: e.target.value})} className="w-full bg-[#1a0b2e] border border-blue-500/40 rounded-lg text-xs text-white px-3 py-2 outline-none focus:ring-1 focus:ring-blue-500" />
+                                            </div>
+                                            <div className="w-full sm:w-40 shrink-0">
+                                                <label className="text-[8px] font-bold text-slate-500 uppercase block mb-1">Deadline Date</label>
+                                                <input type="date" value={editSprintData.end_date} onChange={e => setEditSprintData({...editSprintData, end_date: e.target.value})} className="w-full bg-[#1a0b2e] border border-blue-500/40 rounded-lg text-xs text-white px-3 py-2 outline-none [color-scheme:dark]" />
+                                            </div>
                                         </div>
+
+                                        {/* 🌟 TEKNOLOJİ VE SKİLL DÜZENLEME PANELİ (YENİ) */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#0f0822] p-3 rounded-lg border border-purple-500/10">
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className="text-[8px] font-black text-purple-400 tracking-widest uppercase border-b border-purple-500/10 pb-1">Tech Stack</label>
+                                                <div className="flex flex-wrap gap-1 max-h-[80px] overflow-y-auto pr-1">
+                                                    {availableBadges.map(badge => (
+                                                        <button key={`edit-badge-${badge}`} type="button" onClick={() => toggleEditItem(badge, 'badges')} className={`px-2 py-1 rounded text-[8px] font-bold transition-all ${editSprintData.badges.includes(badge) ? 'bg-purple-600 text-white shadow-md' : 'bg-[#1a0b2e] border border-purple-500/20 text-slate-500 hover:text-slate-300'}`}>{badge}</button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className="text-[8px] font-black text-blue-400 tracking-widest uppercase border-b border-blue-500/10 pb-1">Core Skills</label>
+                                                <div className="flex flex-wrap gap-1 max-h-[80px] overflow-y-auto pr-1">
+                                                    {availableSkills.map(skill => (
+                                                        <button key={`edit-skill-${skill}`} type="button" onClick={() => toggleEditItem(skill, 'skills')} className={`px-2 py-1 rounded text-[8px] font-bold transition-all ${editSprintData.skills.includes(skill) ? 'bg-blue-600 text-white shadow-md' : 'bg-[#1a0b2e] border border-purple-500/20 text-slate-500 hover:text-slate-300'}`}>{skill}</button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div className="flex justify-end gap-1.5 mt-1">
-                                            <button type="button" onClick={() => setEditingSprintId(null)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">✖ Cancel</button>
-                                            <button type="button" onClick={() => saveSprintEdit(sprint.id)} className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">Doc 💾 Save</button>
+                                            <button type="button" onClick={() => setEditingSprintId(null)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">✖ Cancel</button>
+                                            <button type="button" onClick={() => saveSprintEdit(sprint.id)} className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">💾 Save Blueprint</button>
                                         </div>
                                     </div>
                                 ) : (
                                     /* 🌟 STANDART SPRINT BAŞLIK ALANI */
                                     <div className="flex justify-between items-start mb-4 border-b border-purple-500/10 pb-3 mt-10 sm:mt-0 shrink-0">
                                         
-                                        {/* 🌟 KURALA BAĞLI DROPBOX DUVARI */}
+                                        {/* KURALA BAĞLI DROPBOX DUVARI */}
                                         {sprint.status === 'active' ? (
                                             hasAccess ? (
                                                 <button 
@@ -264,7 +324,8 @@ export default function SprintsIndex({
                                         <div className="flex-1 pr-2 min-w-0 overflow-hidden">
                                             <div className="flex items-center gap-3">
                                                 <h3 className={`text-base sm:text-xl font-bold truncate ${isSprintOver ? 'text-slate-500' : 'text-white'}`}>{sprint.name}</h3>
-                                                {realIsAdmin && !isSprintOver && (
+                                                {/* 🌟 ARTIK EXPIRED DA OLSA ADMINLER HER ZAMAN DÜZENLEYEBİLİR */}
+                                                {realIsAdmin && (
                                                     <div className="flex gap-1.5 shrink-0">
                                                         <button type="button" onClick={() => startEditSprint(sprint)} className="text-blue-400 hover:text-blue-300 text-sm hover:scale-110 transition-transform">✏️</button>
                                                         <button type="button" onClick={() => deleteSprint(sprint.id)} className="text-red-400 hover:text-red-300 text-sm hover:scale-110 transition-transform">🗑️</button>
@@ -280,17 +341,19 @@ export default function SprintsIndex({
                                             <p className="text-[8px] sm:text-[10px] text-slate-500 mt-2 font-black uppercase tracking-widest">{sprint.status === 'expired' ? '⌛ EXPIRED' : '📅 DEADLINE'}: {sprint.end_date}</p>
                                         </div>
                                         
+                                        {/* ADMINLER İÇİN DURUM SEÇİCİ DÖNGÜSÜ */}
                                         <button 
                                             onClick={() => toggleStatus(sprint.id, sprint.status)} 
-                                            disabled={isSprintOver} 
-                                            className={`shrink-0 px-2 sm:px-3 py-1 sm:py-1.5 text-[8px] sm:text-[10px] rounded-lg uppercase font-black border transition-all ${getStatusStyle(sprint.status)} ${isSprintOver ? 'cursor-not-allowed opacity-50' : 'cursor-pointer active:scale-95'}`}
+                                            disabled={!realIsAdmin} 
+                                            className={`shrink-0 px-2 sm:px-3 py-1 sm:py-1.5 text-[8px] sm:text-[10px] rounded-lg uppercase font-black border transition-all ${getStatusStyle(sprint.status)} ${!realIsAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer active:scale-95'}`}
+                                            title={realIsAdmin ? "Click to toggle or revive status" : "Only admins can change status"}
                                         >
                                             {sprint.status}
                                         </button>
                                     </div>
                                 )}
 
-                                {/* TASKS LISTESİ */}
+                                {/* TASKS LİSTESİ */}
                                 <div className="space-y-2 mb-4 flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-purple-500/20">
                                     {(sprint.tasks || []).map(task => {
                                         const isJoined = task.users?.some(u => u.id === auth.user.id);
@@ -298,21 +361,23 @@ export default function SprintsIndex({
 
                                         return (
                                             <div key={task.id} className="w-full">
-                                                {/* 🌟 GÖREV SATIRI İÇİ DÜZENLEME FORMU (Geniş Blok Tasarım) */}
+                                                {/* GÖREV SATIRI İÇİ DÜZENLEME FORMU */}
                                                 {editingTaskId === task.id ? (
-                                                    <div className="w-full bg-[#1a0b2e] border border-blue-500/40 p-3 rounded-xl shadow-xl flex flex-col gap-2 animate-fadeIn">
+                                                    <div className="w-full bg-[#1a0b2e] border border-blue-500/40 p-3 rounded-xl shadow-xl flex flex-col gap-3 animate-fadeIn">
                                                         <div className="text-[9px] font-black text-blue-400 uppercase tracking-wider">Edit Mission Core</div>
                                                         <input type="text" value={editTaskData.title} onChange={e => setEditTaskData({...editTaskData, title: e.target.value})} className="w-full bg-[#0f0822] border border-purple-500/30 rounded-lg text-xs text-white px-3 py-2 outline-none focus:border-blue-500 transition-all" />
-                                                        <div className="flex justify-between items-center gap-2 w-full mt-1">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="text-[10px] text-slate-500 font-bold uppercase">Complexity:</span>
+                                                        
+                                                        {/* 🌟 HİZALAMA HATASI DÜZELTİLDİ: İç elemanlar artık flex row halinde sığıyor */}
+                                                        <div className="flex justify-between items-center gap-2 w-full mt-1 shrink-0">
+                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                <span className="text-[10px] text-slate-500 font-bold uppercase">Level:</span>
                                                                 <select value={editTaskData.complexity_level} onChange={e => setEditTaskData({...editTaskData, complexity_level: parseInt(e.target.value)})} className="bg-[#0f0822] border border-blue-500/30 text-slate-300 text-xs outline-none rounded p-1 font-bold">
                                                                     {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}★</option>)}
                                                                 </select>
                                                             </div>
-                                                            <div className="flex gap-1 shrink-0">
-                                                                <button type="button" onClick={() => setEditingTaskId(null)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-1 rounded text-xs font-bold transition-all">✖</button>
-                                                                <button type="button" onClick={() => saveTaskEdit(task.id)} className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 px-3 py-1 rounded text-xs font-bold transition-all">💾 Save</button>
+                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                <button type="button" onClick={() => setEditingTaskId(null)} className="flex items-center justify-center px-2.5 h-7 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded font-bold transition-all text-[11px]">✖</button>
+                                                                <button type="button" onClick={() => saveTaskEdit(task.id)} className="flex items-center justify-center px-3 h-7 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded text-xs font-bold transition-all whitespace-nowrap">💾 Save</button>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -334,7 +399,7 @@ export default function SprintsIndex({
                                                         </div>
 
                                                         <div className="flex items-center justify-end w-full sm:w-auto gap-2 shrink-0 mt-1 sm:mt-0">
-                                                            {/* GÖREV DÜZENLE/SİL BUTONLARI (Hover Durumu) */}
+                                                            {/* GÖREV DÜZENLE/SİL BUTONLARI */}
                                                             {realIsAdmin && !isLocked && (
                                                                 <div className="hidden sm:group-hover:flex items-center gap-1.5 mx-2 shrink-0">
                                                                     <button type="button" onClick={() => startEditTask(task)} className="text-blue-400 hover:text-blue-300 hover:scale-110 transition-transform" title="Görevi Düzenle">✏️</button>
