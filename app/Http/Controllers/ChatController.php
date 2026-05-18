@@ -7,9 +7,11 @@ use App\Models\User;
 use App\Models\Notification; 
 use App\Events\MessageSent;
 use App\Events\NewNotification; 
+use App\Events\MessagesRead; // 🌟 Görüldü eventi eklendi
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class ChatController extends Controller
 {
@@ -63,6 +65,15 @@ class ChatController extends Controller
             ]);
         }
 
+        // 🌟 Odaya ilk girdiğinde karşı taraftan gelen okunmamış mesajları temizle
+        Message::where('conversation_id', $conversation->id)
+            ->where('sender_id', $receiver->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        // Karşı tarafa anlık sinyal gönder: "Odaya girdim, eski mesajlarını okudum!"
+        broadcast(new MessagesRead($conversation->id, $userId))->toOthers();
+
         $messages = $conversation->messages()->with('sender')->get();
 
         return Inertia::render('Chat/Room', [
@@ -73,6 +84,22 @@ class ChatController extends Controller
         ]);
     }
 
+    // 🌟 MANUEL GÖRÜLDÜ TETİKLEYİCİ API'Sİ
+    public function markAsRead(Conversation $conversation)
+    {
+        $userId = Auth::id();
+        
+        $updatedCount = Message::where('conversation_id', $conversation->id)
+            ->where('sender_id', '!=', $userId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        // Sinyali her durumda gönderiyoruz ki ön yüz anlık senkronize olsun
+        broadcast(new MessagesRead($conversation->id, $userId))->toOthers();
+
+        return response()->json(['success' => true]);
+    }
+
     // 🌟 MESAJI FIRLAT VE BİLDİRİME LİNK GİZLE
     public function store(Request $request, Conversation $conversation)
     {
@@ -80,10 +107,11 @@ class ChatController extends Controller
 
         $userId = Auth::id();
 
-        // 1. Mesajı veritabanına kaydet
+        // 1. Mesajı veritabanına kaydet (Varsayılan olarak okundu tarihi null - yani tek gri tik)
         $message = $conversation->messages()->create([
             'sender_id' => $userId,
             'body' => $request->body,
+            'read_at' => null, 
         ]);
 
         $message->load('sender');
@@ -91,22 +119,20 @@ class ChatController extends Controller
         // 2. REVERB İLE MESAJI KARŞI TARAFA FIRLAT
         broadcast(new MessageSent($message))->toOthers();
 
-        // 🌟 3. YENİ: BİLDİRİME IŞINLANMA KOORDİNATI (LİNK) EKLİYORUZ 🌟
+        // 3. BİLDİRİME IŞINLANMA KOORDİNATI (LİNK) EKLİYORUZ
         $receiverId = $conversation->user_one_id === $userId 
                         ? $conversation->user_two_id 
                         : $conversation->user_one_id;
 
-        // Metin yerine JSON datası yolluyoruz! 
-        // Böylece React tarafı bu JSON'u çözüp içindeki 'link' bilgisine gidecek.
         $notificationData = json_encode([
             'text' => Auth::user()->name . " sent you an encrypted message.",
-            'link' => '/chat/' . $userId // Mesajı atan kişinin ID'sine giden rotayı göm
+            'link' => '/chat/' . $userId 
         ]);
 
         $notification = Notification::create([
             'user_id' => $receiverId,
             'type' => 'message',
-            'message' => $notificationData // Json stringini veritabanına yaz
+            'message' => $notificationData 
         ]);
 
         broadcast(new NewNotification($notification))->toOthers();

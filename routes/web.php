@@ -76,6 +76,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/inbox', [ChatController::class, 'index'])->name('chat.inbox');
     Route::get('/chat/{receiver}', [ChatController::class, 'show'])->name('chat.show');
     Route::post('/chat/{conversation}/message', [ChatController::class, 'store'])->name('chat.store');
+    Route::post('/chat/{conversation}/read', [\App\Http\Controllers\ChatController::class, 'markAsRead']);
 
     Route::post('/api/ai/recommendations', [\App\Http\Controllers\Api\AiInsightsController::class, 'getRecommendations'])->name('ai.recommendations');
 
