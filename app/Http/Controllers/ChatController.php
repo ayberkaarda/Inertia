@@ -107,11 +107,11 @@ class ChatController extends Controller
 
         $userId = Auth::id();
 
-        // 1. Mesajı veritabanına kaydet (Varsayılan olarak okundu tarihi null - yani tek gri tik)
+        // 1. Mesajı veritabanına kaydet (Yeni mesaj kesinlikle okunmamıştır = null)
         $message = $conversation->messages()->create([
             'sender_id' => $userId,
             'body' => $request->body,
-            'read_at' => null, 
+            'read_at' => null, // 🌟 Garantiye alıyoruz
         ]);
 
         $message->load('sender');
@@ -119,7 +119,7 @@ class ChatController extends Controller
         // 2. REVERB İLE MESAJI KARŞI TARAFA FIRLAT
         broadcast(new MessageSent($message))->toOthers();
 
-        // 3. BİLDİRİME IŞINLANMA KOORDİNATI (LİNK) EKLİYORUZ
+        // 3. BİLDİRİME LİNK GİZLEME ALANI
         $receiverId = $conversation->user_one_id === $userId 
                         ? $conversation->user_two_id 
                         : $conversation->user_one_id;
@@ -137,6 +137,15 @@ class ChatController extends Controller
 
         broadcast(new NewNotification($notification))->toOthers();
 
-        return response()->json($message); 
+        // 🌟 Taze nesneyi frontend'e fırlatırken read_at'in null olduğunu açıkça belirtiyoruz
+        return response()->json([
+            'id' => $message->id,
+            'conversation_id' => $message->conversation_id,
+            'sender_id' => $message->sender_id,
+            'body' => $message->body,
+            'read_at' => null, // 🌟 İLK ANDA ASLA ÇİFT TİK PARLAMASIN DEKLARASYONU
+            'created_at' => $message->created_at->toISOString(),
+            'sender' => $message->sender
+        ]);
     }
 }

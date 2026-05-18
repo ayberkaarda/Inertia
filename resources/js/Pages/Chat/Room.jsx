@@ -65,13 +65,19 @@ export default function Room({ auth, conversation, messages, receiver }) {
             const response = await axios.post(`/chat/${conversation.id}/message`, {
                 body: tempMessage
             });
-            setMessagesList((prev) => [...prev, response.data]);
+            
+            // 🌟 GELEN VERİYİ LİSTEYE BASARKEN KONTROLÜ SIKILAŞTIRIYORUZ
+            const freshMessage = {
+                ...response.data,
+                read_at: response.data.read_at || null // Kesinlikle null olarak başlasın
+            };
+            
+            setMessagesList((prev) => [...prev, freshMessage]);
         } catch (error) {
             console.error("Message not sent:", error);
             setNewMessage(tempMessage); 
         }
     };
-
     return (
         <Sidebarheader pageTitle={`Comms: ${receiver.name}`}>
             <Head title={`Chat - ${receiver.name}`} />
@@ -123,9 +129,11 @@ export default function Room({ auth, conversation, messages, receiver }) {
                                 <p>[ SECURE CHANNEL OPENED ]</p>
                             </div>
                         ) : (
-                            messagesList.map((msg) => {
+                            messagesList.map((msg) => { 
+                                // Üst kısımda map içinde:
                                 const isMe = msg.sender_id === auth.user.id;
-                                const isRead = msg.read_at !== null;
+                                // 🌟 Sadece string veya tarih damgası varsa true say, null veya undefined ise kesinlikle false!
+                                const isRead = msg.read_at !== null && msg.read_at !== undefined && msg.read_at !== '';
 
                                 return (
                                     <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
