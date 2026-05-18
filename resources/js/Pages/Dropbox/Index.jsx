@@ -182,6 +182,8 @@ export default function DropboxIndex({ auth, sprints }) {
                                                             <span>{formatBytes(file.file_size)}</span>
                                                             <span>•</span>
                                                             <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                                                            <span>•</span>
+                                                            <span>{new Date(file.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                         </div>
                                                     </div>
                                                 </div>
