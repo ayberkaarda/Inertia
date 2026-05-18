@@ -149,9 +149,9 @@ export default function SprintsIndex({
         <SidebarHeader auth={auth} pageTitle="Sprints">
             <Head title="Active Sprints" />
 
-            <div className="bg-[#160d33]/80 backdrop-blur-xl border border-purple-500/30 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8">
+            <div className="bg-[#160d33]/80 backdrop-blur-xl border border-purple-500/30 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 flex flex-col h-full min-h-[calc(100vh-100px)]">
                 
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 border-b border-purple-500/20 pb-4 gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 border-b border-purple-500/20 pb-4 gap-4 shrink-0">
                     <div>
                         <h2 className="text-xl sm:text-3xl font-bold text-white uppercase tracking-tight">Sprint Task Board </h2>
                         <p className="text-emerald-400 text-[10px] sm:text-xs mt-1 animate-pulse font-black uppercase tracking-widest">🟢 Neural Link Active</p>
@@ -164,7 +164,7 @@ export default function SprintsIndex({
                 </div>
 
                 {isCreating && realIsAdmin && (
-                    <form onSubmit={submitSprint} className="bg-[#0f0822] p-4 sm:p-6 rounded-2xl border border-emerald-500/30 mb-8 flex flex-col gap-4 sm:gap-6 animate-in fade-in slide-in-from-top-4 shadow-xl">
+                    <form onSubmit={submitSprint} className="bg-[#0f0822] p-4 sm:p-6 rounded-2xl border border-emerald-500/30 mb-8 flex flex-col gap-4 sm:gap-6 animate-in fade-in slide-in-from-top-4 shadow-xl shrink-0">
                         <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
                             <div className="flex-1">
                                 <label className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1.5 block">Sprint name</label>
@@ -201,14 +201,14 @@ export default function SprintsIndex({
                     </form>
                 )}
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 flex-1 auto-rows-max">
                     {initialSprints.map((sprint) => {
                         const sprintSkills = sprint.required_skill ? sprint.required_skill.split(',').map(s => s.trim()) : [];
                         const isSprintOver = sprint.status === 'completed' || sprint.status === 'expired';
                         const hasAccess = checkUserAccess(sprint);
 
                         return (
-                            <div key={sprint.id} className={`bg-[#0f0822] border rounded-2xl p-4 sm:p-6 shadow-lg flex flex-col transition-all relative ${isSprintOver ? 'border-slate-700/50 bg-[#0a0516]' : 'border-purple-500/20 hover:border-purple-500/40'}`}>
+                            <div key={sprint.id} className={`bg-[#0f0822] border rounded-2xl p-4 sm:p-6 shadow-lg flex flex-col transition-all relative h-full min-h-[400px] ${isSprintOver ? 'border-slate-700/50 bg-[#0a0516]' : 'border-purple-500/20 hover:border-purple-500/40'}`}>
                                 
                                 {/* 🌟 DROPBOX KASA BUTONU */}
                                 {hasAccess ? (
@@ -227,15 +227,15 @@ export default function SprintsIndex({
                                     </div>
                                 )}
 
-                                <div className="flex justify-between items-start mb-4 border-b border-purple-500/10 pb-3 mt-8 sm:mt-0">
-                                    <div className="flex-1 pr-2 min-w-0 mt-2 sm:mt-0">
+                                <div className="flex justify-between items-start mb-4 border-b border-purple-500/10 pb-3 mt-8 sm:mt-0 shrink-0">
+                                    <div className="flex-1 pr-2 min-w-0 mt-2 sm:mt-0 overflow-hidden">
                                         
                                         {/* 🌟 SPRINT İSİM VE DÜZENLEME ALANI */}
                                         {editingSprintId === sprint.id ? (
                                             <div className="flex flex-col sm:flex-row gap-2 mb-3">
-                                                <input type="text" value={editSprintData.name} onChange={e => setEditSprintData({...editSprintData, name: e.target.value})} className="bg-[#1a0b2e] border border-blue-500/50 rounded-lg text-sm text-white px-3 py-1.5 outline-none focus:ring-1 focus:ring-blue-500 flex-1" />
-                                                <input type="date" value={editSprintData.end_date} onChange={e => setEditSprintData({...editSprintData, end_date: e.target.value})} className="bg-[#1a0b2e] border border-blue-500/50 rounded-lg text-sm text-white px-3 py-1.5 outline-none [color-scheme:dark] w-full sm:w-36" />
-                                                <div className="flex gap-1">
+                                                <input type="text" value={editSprintData.name} onChange={e => setEditSprintData({...editSprintData, name: e.target.value})} className="bg-[#1a0b2e] border border-blue-500/50 rounded-lg text-sm text-white px-3 py-1.5 outline-none focus:ring-1 focus:ring-blue-500 flex-1 min-w-0" />
+                                                <input type="date" value={editSprintData.end_date} onChange={e => setEditSprintData({...editSprintData, end_date: e.target.value})} className="bg-[#1a0b2e] border border-blue-500/50 rounded-lg text-sm text-white px-3 py-1.5 outline-none [color-scheme:dark] w-full sm:w-36 shrink-0" />
+                                                <div className="flex gap-1 shrink-0">
                                                     <button onClick={() => saveSprintEdit(sprint.id)} className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold">💾 Save</button>
                                                     <button onClick={() => setEditingSprintId(null)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-1.5 rounded-lg text-xs font-bold">✖</button>
                                                 </div>
@@ -245,7 +245,7 @@ export default function SprintsIndex({
                                                 <h3 className={`text-base sm:text-xl font-bold truncate ${isSprintOver ? 'text-slate-500' : 'text-white'}`}>{sprint.name}</h3>
                                                 {/* 🌟 SPRINT DÜZENLE/SİL BUTONLARI */}
                                                 {realIsAdmin && !isSprintOver && (
-                                                    <div className="flex gap-1.5">
+                                                    <div className="flex gap-1.5 shrink-0">
                                                         <button onClick={() => startEditSprint(sprint)} className="text-blue-400 hover:text-blue-300 text-sm hover:scale-110 transition-transform">✏️</button>
                                                         <button onClick={() => deleteSprint(sprint.id)} className="text-red-400 hover:text-red-300 text-sm hover:scale-110 transition-transform">🗑️</button>
                                                     </div>
@@ -272,29 +272,29 @@ export default function SprintsIndex({
                                     </button>
                                 </div>
 
-                                <div className="space-y-2 mb-4 flex-1 overflow-y-auto max-h-[250px] sm:max-h-[300px] pr-1 scrollbar-thin scrollbar-thumb-purple-500/20">
+                                <div className="space-y-2 mb-4 flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-purple-500/20">
                                     {(sprint.tasks || []).map(task => {
                                         const isJoined = task.users?.some(u => u.id === auth.user.id);
                                         const isLocked = task.is_completed || isSprintOver;
 
                                         return (
-                                            <div key={task.id}>
+                                            <div key={task.id} className="w-full">
                                                 {/* 🌟 GÖREV SATIRI İÇİ DÜZENLEME FORMU */}
                                                 {editingTaskId === task.id ? (
                                                     <div className="flex flex-col sm:flex-row gap-2 items-center w-full bg-[#1a0b2e] p-2.5 rounded-xl border border-blue-500/50 shadow-inner">
                                                         <input type="text" value={editTaskData.title} onChange={e => setEditTaskData({...editTaskData, title: e.target.value})} className="flex-1 w-full bg-transparent border-b border-blue-500/30 text-xs text-white px-2 py-1 outline-none focus:border-emerald-500 transition-colors" />
-                                                        <select value={editTaskData.complexity_level} onChange={e => setEditTaskData({...editTaskData, complexity_level: parseInt(e.target.value)})} className="bg-[#0f0822] border border-blue-500/30 text-slate-300 text-xs outline-none rounded p-1">
+                                                        <select value={editTaskData.complexity_level} onChange={e => setEditTaskData({...editTaskData, complexity_level: parseInt(e.target.value)})} className="shrink-0 bg-[#0f0822] border border-blue-500/30 text-slate-300 text-xs outline-none rounded p-1">
                                                             {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}★</option>)}
                                                         </select>
-                                                        <div className="flex gap-1 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                                                        <div className="flex gap-1 w-full sm:w-auto justify-end mt-2 sm:mt-0 shrink-0">
                                                             <button onClick={() => saveTaskEdit(task.id)} className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40 px-3 py-1 rounded text-xs font-bold transition-colors">💾 Kaydet</button>
                                                             <button onClick={() => setEditingTaskId(null)} className="bg-red-500/20 text-red-400 hover:bg-red-500/40 px-3 py-1 rounded text-xs font-bold transition-colors">✖</button>
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     // 🌟 STANDART GÖREV SATIRI
-                                                    <div className={`group flex justify-between items-center bg-[#1a0b2e] border p-2 sm:p-3 rounded-xl transition-all ${isLocked ? 'opacity-40 grayscale border-slate-800' : 'border-purple-500/10 hover:border-purple-500/30'}`}>
-                                                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                                    <div className={`group flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#1a0b2e] border p-2 sm:p-3 rounded-xl transition-all w-full gap-2 sm:gap-0 ${isLocked ? 'opacity-40 grayscale border-slate-800' : 'border-purple-500/10 hover:border-purple-500/30'}`}>
+                                                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 w-full">
                                                             <button 
                                                                 onClick={() => handleToggleCompletion(task, sprint.status)} 
                                                                 disabled={isLocked}
@@ -302,28 +302,28 @@ export default function SprintsIndex({
                                                             >
                                                                 {task.is_completed ? '✓' : ''}
                                                             </button>
-                                                            <div className="flex flex-col min-w-0">
-                                                                <span className={`text-xs sm:text-sm truncate font-medium ${task.is_completed ? 'line-through text-slate-500' : 'text-slate-200'}`}>{task.title}</span>
-                                                                <span className="text-[7px] sm:text-[8px] text-slate-500 font-black uppercase">{task.is_completed ? 'Completed' : (isSprintOver ? 'Sprint Locked' : `${task.complexity_level}★ COMPLEXITY`)}</span>
+                                                            <div className="flex flex-col min-w-0 flex-1">
+                                                                <span className={`text-xs sm:text-sm truncate font-medium block w-full ${task.is_completed ? 'line-through text-slate-500' : 'text-slate-200'}`} title={task.title}>{task.title}</span>
+                                                                <span className="text-[7px] sm:text-[8px] text-slate-500 font-black uppercase shrink-0 mt-0.5">{task.is_completed ? 'Completed' : (isSprintOver ? 'Sprint Locked' : `${task.complexity_level}★ COMPLEXITY`)}</span>
                                                             </div>
                                                         </div>
 
-                                                        {/* 🌟 GÖREV DÜZENLE/SİL BUTONLARI (Hover'da Çıkar) */}
-                                                        {realIsAdmin && !isLocked && (
-                                                            <div className="hidden group-hover:flex items-center gap-1.5 mx-2 shrink-0">
-                                                                <button onClick={() => startEditTask(task)} className="text-blue-400 hover:text-blue-300 hover:scale-110 transition-transform" title="Görevi Düzenle">✏️</button>
-                                                                <button onClick={() => deleteTask(task.id)} className="text-red-400 hover:text-red-300 hover:scale-110 transition-transform" title="Görevi Sil">🗑️</button>
-                                                            </div>
-                                                        )}
+                                                        <div className="flex items-center justify-end w-full sm:w-auto gap-2 shrink-0 mt-1 sm:mt-0">
+                                                            {/* 🌟 GÖREV DÜZENLE/SİL BUTONLARI (Hover'da Çıkar) */}
+                                                            {realIsAdmin && !isLocked && (
+                                                                <div className="hidden sm:group-hover:flex items-center gap-1.5 mx-2 shrink-0">
+                                                                    <button onClick={() => startEditTask(task)} className="text-blue-400 hover:text-blue-300 hover:scale-110 transition-transform" title="Görevi Düzenle">✏️</button>
+                                                                    <button onClick={() => deleteTask(task.id)} className="text-red-400 hover:text-red-300 hover:scale-110 transition-transform" title="Görevi Sil">🗑️</button>
+                                                                </div>
+                                                            )}
 
-                                                        <div className="flex items-center gap-2 shrink-0">
-                                                            <div className="flex -space-x-1.5">
+                                                            <div className="flex -space-x-1.5 shrink-0">
                                                                 {task.users?.slice(0, 3).map((u, i) => (
                                                                     <img key={i} src={u.avatar ? `/storage/${u.avatar}` : `https://ui-avatars.com/api/?name=${u.name}&background=random&color=fff&bold=true`} className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border border-[#1a0b2e] object-cover shadow-lg" title={u.name} />
                                                                 ))}
                                                             </div>
                                                             {!isLocked && !isJoined && (
-                                                                <button onClick={() => handleJoinTask(task.id)} className="text-[8px] sm:text-[9px] text-emerald-400 border border-emerald-500/30 px-1.5 py-1 rounded hover:bg-emerald-500/20 font-black uppercase tracking-tighter transition-colors">JOIN</button>
+                                                                <button onClick={() => handleJoinTask(task.id)} className="text-[8px] sm:text-[9px] text-emerald-400 border border-emerald-500/30 px-1.5 py-1 rounded hover:bg-emerald-500/20 font-black uppercase tracking-tighter transition-colors shrink-0">JOIN</button>
                                                             )}
                                                         </div>
                                                     </div>
@@ -337,23 +337,25 @@ export default function SprintsIndex({
                                 </div>
 
                                 {!isSprintOver && (
-                                    <div className="flex gap-1.5 mt-auto pt-3 border-t border-purple-500/10">
+                                    <div className="flex flex-col sm:flex-row gap-1.5 mt-auto pt-3 border-t border-purple-500/10 shrink-0">
                                         <input 
                                             type="text" 
                                             value={newTaskData[sprint.id]?.title || ''} 
                                             placeholder="Add mission..." 
-                                            className="flex-1 bg-[#1a0b2e] border border-purple-500/20 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-purple-500/50 transition-colors" 
+                                            className="flex-1 w-full bg-[#1a0b2e] border border-purple-500/20 rounded-lg px-3 py-1.5 sm:py-2 text-xs text-white outline-none focus:border-purple-500/50 transition-colors" 
                                             onChange={(e) => setNewTaskData({...newTaskData, [sprint.id]: { ...newTaskData[sprint.id], title: e.target.value }})} 
                                             onKeyDown={(e) => e.key === 'Enter' && handleCreateTask(sprint.id)} 
                                         />
-                                        <select 
-                                            value={newTaskData[sprint.id]?.complexity || 5} 
-                                            onChange={(e) => setNewTaskData({...newTaskData, [sprint.id]: { ...newTaskData[sprint.id], complexity: parseInt(e.target.value) }})} 
-                                            className="w-[45px] sm:w-[60px] bg-[#1a0b2e] text-slate-400 border border-purple-500/20 rounded-lg text-[9px] font-bold outline-none text-center appearance-none"
-                                        >
-                                            {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}★</option>)}
-                                        </select>
-                                        <button onClick={() => handleCreateTask(sprint.id)} className="bg-purple-600/20 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all shadow-lg active:scale-95">ADD</button>
+                                        <div className="flex gap-1.5 w-full sm:w-auto">
+                                            <select 
+                                                value={newTaskData[sprint.id]?.complexity || 5} 
+                                                onChange={(e) => setNewTaskData({...newTaskData, [sprint.id]: { ...newTaskData[sprint.id], complexity: parseInt(e.target.value) }})} 
+                                                className="w-1/2 sm:w-[60px] bg-[#1a0b2e] text-slate-400 border border-purple-500/20 rounded-lg text-[9px] sm:text-xs font-bold outline-none text-center appearance-none shrink-0"
+                                            >
+                                                {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}★</option>)}
+                                            </select>
+                                            <button onClick={() => handleCreateTask(sprint.id)} className="w-1/2 sm:w-auto bg-purple-600/20 hover:bg-purple-600 text-white px-3 py-1.5 sm:py-2 rounded-lg text-[9px] sm:text-xs font-black uppercase transition-all shadow-lg active:scale-95 shrink-0">ADD</button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
