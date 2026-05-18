@@ -67,7 +67,6 @@ export default function SprintsIndex({
         });
     };
 
-    // 🌟 SPRINT DÜZENLEMEYİ BAŞLATIRKEN MEVCUT SKILL VE BADGELERİ PARSE EDİYORUZ
     const startEditSprint = (sprint) => {
         const currentSkillsAndBadges = sprint.required_skill ? sprint.required_skill.split(',').map(s => s.trim()) : [];
         const currentBadges = currentSkillsAndBadges.filter(s => availableBadges.includes(s));
@@ -103,7 +102,6 @@ export default function SprintsIndex({
         }
     };
 
-    // 🌟 ZOMBİ DİRİLTME MANTIĞI: Durum Değiştirme Döngüsü
     const toggleStatus = (id, currentStatus) => {
         if (!realIsAdmin) return;
 
@@ -111,7 +109,7 @@ export default function SprintsIndex({
         if (currentStatus === 'planned') nextStatus = 'active';
         if (currentStatus === 'active') nextStatus = 'completed';
         if (currentStatus === 'completed') nextStatus = 'expired';
-        if (currentStatus === 'expired') nextStatus = 'active'; // Kırmızıdan Yeşile Diriltme!
+        if (currentStatus === 'expired') nextStatus = 'active';
         
         let confirmMsg = `Sprint durumunu '${nextStatus}' olarak değiştirmek istiyor musunuz?`;
         if (nextStatus === 'completed') confirmMsg = "Sprint'i tamamlamak içindeki tüm görevleri kilitler. Devam edilsin mi?";
@@ -165,7 +163,6 @@ export default function SprintsIndex({
         setNewSprint({ ...newSprint, [type]: list });
     };
 
-    // 🌟 DÜZENLEME MODU İÇİN ÖZEL TOGGLE FONKSİYONU
     const toggleEditItem = (item, type) => {
         const list = editSprintData[type].includes(item)
             ? editSprintData[type].filter(i => i !== item)
@@ -208,21 +205,33 @@ export default function SprintsIndex({
                             </div>
                         </div>
 
+                        {/* 🌟 YENİ SPRINT OLUŞTURMA: Gelişmiş Izgara (Grid) Modeli */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 bg-[#160d33] p-4 sm:p-5 rounded-xl border border-purple-500/10">
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[9px] font-black text-purple-400 tracking-widest uppercase border-b border-purple-500/20 pb-2 mb-1">Tech Stack</label>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {availableBadges.map(badge => (
-                                        <button key={badge} type="button" onClick={() => toggleItem(badge, 'badges')} className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all ${newSprint.badges.includes(badge) ? 'bg-purple-600 text-white shadow-lg' : 'bg-[#0f0822] border border-purple-500/30 text-slate-400 hover:text-slate-200'}`}>{badge}</button>
-                                    ))}
+                            <div className="flex flex-col gap-3">
+                                <label className="text-[9px] font-black text-purple-400 tracking-widest uppercase border-b border-purple-500/20 pb-2">Tech Stack (Badges)</label>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-purple-500/30">
+                                    {availableBadges.map(badge => {
+                                        const hasBadge = newSprint.badges.includes(badge);
+                                        return (
+                                            <div key={badge} onClick={() => toggleItem(badge, 'badges')} className={`cursor-pointer p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${hasBadge ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'bg-[#0f0822] border-purple-500/20 hover:border-purple-500/40 opacity-60 hover:opacity-100'}`}>
+                                                <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-center ${hasBadge ? 'text-amber-400' : 'text-slate-400'}`}>{badge}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[9px] font-black text-blue-400 tracking-widest uppercase border-b border-blue-500/20 pb-2 mb-1">Core Skills</label>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {availableSkills.map(skill => (
-                                        <button key={skill} type="button" onClick={() => toggleItem(skill, 'skills')} className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all ${newSprint.skills.includes(skill) ? 'bg-blue-600 text-white shadow-lg' : 'bg-[#0f0822] border border-purple-500/30 text-slate-400 hover:text-slate-200'}`}>{skill}</button>
-                                    ))}
+                            <div className="flex flex-col gap-3">
+                                <label className="text-[9px] font-black text-blue-400 tracking-widest uppercase border-b border-blue-500/20 pb-2">Core Skills</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-blue-500/30">
+                                    {availableSkills.map(skill => {
+                                        const hasSkill = newSprint.skills.includes(skill);
+                                        return (
+                                            <div key={skill} onClick={() => toggleItem(skill, 'skills')} className={`cursor-pointer p-2 rounded-xl border flex items-center gap-2 transition-all ${hasSkill ? 'bg-blue-500/10 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'bg-[#0f0822] border-purple-500/20 hover:border-purple-500/40 opacity-60 hover:opacity-100'}`}>
+                                                <input type="checkbox" checked={hasSkill} readOnly className="rounded border-purple-500/30 bg-[#0d0722] text-blue-500 focus:ring-blue-500/50 w-3 h-3 pointer-events-none" />
+                                                <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest truncate ${hasSkill ? 'text-blue-300' : 'text-slate-400'}`}>{skill}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -244,10 +253,10 @@ export default function SprintsIndex({
                                 
                                 {/* 🌟 DÜZENLEME MODU (SPRINT - GENİŞ KONTEYNER TASARIM) */}
                                 {editingSprintId === sprint.id ? (
-                                    <div className="w-full flex flex-col gap-3 mb-4 border-b border-blue-500/30 pb-4 shrink-0 animate-fadeIn relative z-20 bg-[#160d33]/90 p-4 rounded-xl">
+                                    <div className="w-full flex flex-col gap-4 mb-4 border-b border-blue-500/30 pb-4 shrink-0 animate-fadeIn relative z-20 bg-[#160d33]/90 p-4 sm:p-5 rounded-xl">
                                         <div className="text-[10px] font-black text-blue-400 uppercase tracking-wider">Modify Sprint Blueprint</div>
                                         
-                                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                        <div className="flex flex-col sm:flex-row gap-3 w-full">
                                             <div className="flex-1">
                                                 <label className="text-[8px] font-bold text-slate-500 uppercase block mb-1">Sprint Name</label>
                                                 <input type="text" value={editSprintData.name} onChange={e => setEditSprintData({...editSprintData, name: e.target.value})} className="w-full bg-[#1a0b2e] border border-blue-500/40 rounded-lg text-xs text-white px-3 py-2 outline-none focus:ring-1 focus:ring-blue-500" />
@@ -258,33 +267,44 @@ export default function SprintsIndex({
                                             </div>
                                         </div>
 
-                                        {/* 🌟 TEKNOLOJİ VE SKİLL DÜZENLEME PANELİ (YENİ) */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#0f0822] p-3 rounded-lg border border-purple-500/10">
-                                            <div className="flex flex-col gap-1.5">
-                                                <label className="text-[8px] font-black text-purple-400 tracking-widest uppercase border-b border-purple-500/10 pb-1">Tech Stack</label>
-                                                <div className="flex flex-wrap gap-1 max-h-[80px] overflow-y-auto pr-1">
-                                                    {availableBadges.map(badge => (
-                                                        <button key={`edit-badge-${badge}`} type="button" onClick={() => toggleEditItem(badge, 'badges')} className={`px-2 py-1 rounded text-[8px] font-bold transition-all ${editSprintData.badges.includes(badge) ? 'bg-purple-600 text-white shadow-md' : 'bg-[#1a0b2e] border border-purple-500/20 text-slate-500 hover:text-slate-300'}`}>{badge}</button>
-                                                    ))}
+                                        {/* 🌟 TEKNOLOJİ VE SKİLL DÜZENLEME PANELİ (YENİ GRID MANTIK) */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#0f0822] p-4 rounded-xl border border-purple-500/10">
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[9px] font-black text-purple-400 tracking-widest uppercase border-b border-purple-500/10 pb-1.5">Tech Stack</label>
+                                                <div className="grid grid-cols-3 gap-2 max-h-[120px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-purple-500/30">
+                                                    {availableBadges.map(badge => {
+                                                        const hasBadge = editSprintData.badges.includes(badge);
+                                                        return (
+                                                            <div key={`edit-badge-${badge}`} onClick={() => toggleEditItem(badge, 'badges')} className={`cursor-pointer p-2 rounded-lg border flex items-center justify-center transition-all ${hasBadge ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'bg-[#0a0516] border-purple-500/20 hover:border-purple-500/40 opacity-60 hover:opacity-100'}`}>
+                                                                <span className={`text-[8px] font-black uppercase tracking-widest text-center ${hasBadge ? 'text-amber-400' : 'text-slate-500'}`}>{badge}</span>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col gap-1.5">
-                                                <label className="text-[8px] font-black text-blue-400 tracking-widest uppercase border-b border-blue-500/10 pb-1">Core Skills</label>
-                                                <div className="flex flex-wrap gap-1 max-h-[80px] overflow-y-auto pr-1">
-                                                    {availableSkills.map(skill => (
-                                                        <button key={`edit-skill-${skill}`} type="button" onClick={() => toggleEditItem(skill, 'skills')} className={`px-2 py-1 rounded text-[8px] font-bold transition-all ${editSprintData.skills.includes(skill) ? 'bg-blue-600 text-white shadow-md' : 'bg-[#1a0b2e] border border-purple-500/20 text-slate-500 hover:text-slate-300'}`}>{skill}</button>
-                                                    ))}
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[9px] font-black text-blue-400 tracking-widest uppercase border-b border-blue-500/10 pb-1.5">Core Skills</label>
+                                                <div className="grid grid-cols-2 gap-2 max-h-[120px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-blue-500/30">
+                                                    {availableSkills.map(skill => {
+                                                        const hasSkill = editSprintData.skills.includes(skill);
+                                                        return (
+                                                            <div key={`edit-skill-${skill}`} onClick={() => toggleEditItem(skill, 'skills')} className={`cursor-pointer p-2 rounded-lg border flex items-center gap-1.5 transition-all ${hasSkill ? 'bg-blue-500/10 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'bg-[#0a0516] border-purple-500/20 hover:border-purple-500/40 opacity-60 hover:opacity-100'}`}>
+                                                                <input type="checkbox" checked={hasSkill} readOnly className="rounded border-purple-500/30 bg-[#0d0722] text-blue-500 focus:ring-blue-500/50 w-2.5 h-2.5 pointer-events-none" />
+                                                                <span className={`text-[8px] font-black uppercase tracking-widest truncate ${hasSkill ? 'text-blue-300' : 'text-slate-500'}`}>{skill}</span>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex justify-end gap-1.5 mt-1">
-                                            <button type="button" onClick={() => setEditingSprintId(null)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">✖ Cancel</button>
-                                            <button type="button" onClick={() => saveSprintEdit(sprint.id)} className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">💾 Save Blueprint</button>
+                                        <div className="flex justify-end gap-2 mt-2">
+                                            <button type="button" onClick={() => setEditingSprintId(null)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-4 py-2 rounded-lg text-xs font-bold transition-all">✖ Cancel</button>
+                                            <button type="button" onClick={() => saveSprintEdit(sprint.id)} className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 px-6 py-2 rounded-lg text-xs font-bold transition-all">💾 Save Blueprint</button>
                                         </div>
                                     </div>
                                 ) : (
-                                    /* 🌟 STANDART SPRINT BAŞLIK ALANI */
+                                    /* STANDART SPRINT BAŞLIK ALANI */
                                     <div className="flex justify-between items-start mb-4 border-b border-purple-500/10 pb-3 mt-10 sm:mt-0 shrink-0">
                                         
                                         {/* KURALA BAĞLI DROPBOX DUVARI */}
@@ -305,7 +325,6 @@ export default function SprintsIndex({
                                                 </div>
                                             )
                                         ) : (
-                                            /* EXPIRED VEYA COMPLETED DURUMUNDA HER ZAMAN LOCKED YAZACAK */
                                             <button 
                                                 onClick={() => hasAccess ? router.visit(route('dropbox.index')) : null}
                                                 disabled={!hasAccess}
@@ -324,7 +343,6 @@ export default function SprintsIndex({
                                         <div className="flex-1 pr-2 min-w-0 overflow-hidden">
                                             <div className="flex items-center gap-3">
                                                 <h3 className={`text-base sm:text-xl font-bold truncate ${isSprintOver ? 'text-slate-500' : 'text-white'}`}>{sprint.name}</h3>
-                                                {/* 🌟 ARTIK EXPIRED DA OLSA ADMINLER HER ZAMAN DÜZENLEYEBİLİR */}
                                                 {realIsAdmin && (
                                                     <div className="flex gap-1.5 shrink-0">
                                                         <button type="button" onClick={() => startEditSprint(sprint)} className="text-blue-400 hover:text-blue-300 text-sm hover:scale-110 transition-transform">✏️</button>
@@ -341,7 +359,6 @@ export default function SprintsIndex({
                                             <p className="text-[8px] sm:text-[10px] text-slate-500 mt-2 font-black uppercase tracking-widest">{sprint.status === 'expired' ? '⌛ EXPIRED' : '📅 DEADLINE'}: {sprint.end_date}</p>
                                         </div>
                                         
-                                        {/* ADMINLER İÇİN DURUM SEÇİCİ DÖNGÜSÜ */}
                                         <button 
                                             onClick={() => toggleStatus(sprint.id, sprint.status)} 
                                             disabled={!realIsAdmin} 
@@ -367,7 +384,6 @@ export default function SprintsIndex({
                                                         <div className="text-[9px] font-black text-blue-400 uppercase tracking-wider">Edit Mission Core</div>
                                                         <input type="text" value={editTaskData.title} onChange={e => setEditTaskData({...editTaskData, title: e.target.value})} className="w-full bg-[#0f0822] border border-purple-500/30 rounded-lg text-xs text-white px-3 py-2 outline-none focus:border-blue-500 transition-all" />
                                                         
-                                                        {/* 🌟 HİZALAMA HATASI DÜZELTİLDİ: İç elemanlar artık flex row halinde sığıyor */}
                                                         <div className="flex justify-between items-center gap-2 w-full mt-1 shrink-0">
                                                             <div className="flex items-center gap-1.5 shrink-0">
                                                                 <span className="text-[10px] text-slate-500 font-bold uppercase">Level:</span>
@@ -399,7 +415,6 @@ export default function SprintsIndex({
                                                         </div>
 
                                                         <div className="flex items-center justify-end w-full sm:w-auto gap-2 shrink-0 mt-1 sm:mt-0">
-                                                            {/* GÖREV DÜZENLE/SİL BUTONLARI */}
                                                             {realIsAdmin && !isLocked && (
                                                                 <div className="hidden sm:group-hover:flex items-center gap-1.5 mx-2 shrink-0">
                                                                     <button type="button" onClick={() => startEditTask(task)} className="text-blue-400 hover:text-blue-300 hover:scale-110 transition-transform" title="Görevi Düzenle">✏️</button>
