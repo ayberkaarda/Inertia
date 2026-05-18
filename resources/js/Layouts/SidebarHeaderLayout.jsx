@@ -73,6 +73,8 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
         { name: 'Workspaces', url: route('workspaces.index'), icon: '🖥️' },
         { name: 'Ai Insights', url: route('ai.index'), icon: '🤖' },
         { name: 'Talent Matrix', url: route('talent-matrix.index'), icon: '🌐' },
+        // 🌟 DROPBOX ARAMA MOTORUNA EKLENDİ
+        { name: 'Dropbox Vault', url: route('dropbox.index'), icon: '📦' },
         { name: 'Profile Settings', url: route('profile.edit'), icon: '👤' },
         { name: 'Inbox', url: '/inbox', icon: '💬' },
     ];
@@ -154,6 +156,9 @@ export default function SidebarHeaderLayout({ children, pageTitle = "Platform" }
                         <Link onClick={() => setIsMobileMenuOpen(false)} href={route('ai.index')} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${route().current('ai.*') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>🤖</span> Ai Insights</Link>
                         <Link onClick={() => setIsMobileMenuOpen(false)} href={route('workspaces.index')} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${route().current('workspaces.*') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>🖥️</span> Workspaces</Link>
                         <Link onClick={() => setIsMobileMenuOpen(false)} href={route('talent-matrix.index')} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${route().current('talent-matrix.*') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>🌐</span> Talent Matrix</Link>
+                        
+                        {/* 🌟 DROPBOX SOL MENÜYE EKLENDİ */}
+                        <Link onClick={() => setIsMobileMenuOpen(false)} href={route('dropbox.index')} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition ${route().current('dropbox.*') ? 'bg-purple-600/20 text-white border border-purple-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}><span>📦</span> Dropbox</Link>
                         
                         <div className="mt-6 mb-2 text-xs font-bold text-slate-500 tracking-widest uppercase pl-4">Account</div>
                         <Link onClick={() => setIsMobileMenuOpen(false)} href={route('profile.edit')} className="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition"><span>👤</span> Profile</Link>

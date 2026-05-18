@@ -79,6 +79,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/api/ai/recommendations', [\App\Http\Controllers\Api\AiInsightsController::class, 'getRecommendations'])->name('ai.recommendations');
 
+    // DROPBOXXX
+    // DROPBOX ROUTES
+    Route::get('/dropbox', [\App\Http\Controllers\DropboxController::class, 'index'])->name('dropbox.index');
+    Route::post('/dropbox/{sprint}', [\App\Http\Controllers\DropboxController::class, 'store'])->name('dropbox.store');
+    Route::delete('/dropbox/file/{file}', [\App\Http\Controllers\DropboxController::class, 'destroy'])->name('dropbox.destroy');
+
 });
 
 require __DIR__.'/auth.php';

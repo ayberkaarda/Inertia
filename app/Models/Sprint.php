@@ -9,4 +9,8 @@ class Sprint extends Model {
     public function tasks() {
         return $this->hasMany(Card::class);
     }
+    public function files()
+    {
+        return $this->hasMany(SprintFile::class);
+    }
 }
