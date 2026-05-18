@@ -66,10 +66,14 @@ export default function Room({ auth, conversation, messages, receiver }) {
                 body: tempMessage
             });
             
-            // 🌟 GELEN VERİYİ LİSTEYE BASARKEN KONTROLÜ SIKILAŞTIRIYORUZ
+            // 🌟 ANLIK TİK KAYBOLMA İLACI: Gelen verinin zaman formatını burada taş gibi sabitliyoruz
+            const currentLocalTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
             const freshMessage = {
                 ...response.data,
-                read_at: response.data.read_at || null // Kesinlikle null olarak başlasın
+                // Eğer backend'den time alanı boş veya eksik dönerse anlık tarayıcı saatini (17:39) çakıyoruz
+                time: response.data.time || currentLocalTime, 
+                read_at: response.data.read_at || null // İlk saniyede kesinlikle tek gri tik kalması için
             };
             
             setMessagesList((prev) => [...prev, freshMessage]);
