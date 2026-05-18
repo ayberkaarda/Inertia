@@ -15,7 +15,7 @@ use Carbon\Carbon;
 
 class ChatController extends Controller
 {
-    // 🌟 INBOX SAYFASI: Tüm konuşmaları listele
+    // 🌟 INBOX SAYFASI
     public function index()
     {
         $userId = Auth::id();
@@ -38,7 +38,8 @@ class ChatController extends Controller
                         'avatar' => $otherUser->avatar, 
                     ],
                     'last_message' => $lastMessage ? $lastMessage->body : 'No messages yet...',
-                    'time' => $lastMessage ? $lastMessage->created_at->timezone('Europe/Istanbul')->diffForHumans() : '',
+                    // Uygulama timezone'u ayarlandığı için sadece diffForHumans yeterli
+                    'time' => $lastMessage ? $lastMessage->created_at->diffForHumans() : '', 
                 ];
             });
 
@@ -65,7 +66,6 @@ class ChatController extends Controller
             ]);
         }
 
-        // Odaya girildiğinde okunmamış mesajları okundu yap
         Message::where('conversation_id', $conversation->id)
             ->where('sender_id', $receiver->id)
             ->whereNull('read_at')
@@ -73,9 +73,10 @@ class ChatController extends Controller
 
         broadcast(new MessagesRead($conversation->id, $userId))->toOthers();
 
-        // 🌟 ZAMAN DİLİMİ SABİTLEYİCİ: Eski mesajları çekerken saatleri Europe/Istanbul'a göre formatla
+        // 🌟 Eski mesajları çekerken sadece H:i formatında alıyoruz. 
+        // config/app.php 'Europe/Istanbul' olduğu için otomatik Türkiye saati gelecek.
         $messages = $conversation->messages()->with('sender')->get()->map(function($msg) {
-            $msg->time = $msg->created_at->timezone('Europe/Istanbul')->format('H:i');
+            $msg->time = $msg->created_at->format('H:i');
             return $msg;
         });
 
@@ -118,13 +119,12 @@ class ChatController extends Controller
         $message->load('sender');
         $message->read_at = null;
 
-        // 🌟 REAL-TIME SİNYAL: Giden mesaja da Türkiye saatini gömüyoruz
-        $messageTime = $message->created_at->timezone('Europe/Istanbul')->format('H:i');
+        // Config'ten dolayı direkt Türkiye saati olarak formatlanır
+        $messageTime = $message->created_at->format('H:i');
         $message->time = $messageTime;
 
         broadcast(new MessageSent($message))->toOthers();
 
-        // Bildirim mantığı
         $receiverId = $conversation->user_one_id === $userId ? $conversation->user_two_id : $conversation->user_one_id;
         $notificationData = json_encode([
             'text' => Auth::user()->name . " sent you an encrypted message.",
@@ -145,7 +145,7 @@ class ChatController extends Controller
             'sender_id' => $message->sender_id,
             'body' => $message->body,
             'read_at' => null, 
-            'time' => $messageTime, // 🌟 Tam anlık format (Örn: 17:39)
+            'time' => $messageTime,
             'created_at' => $message->created_at->toISOString(),
             'sender' => $message->sender
         ]); 
