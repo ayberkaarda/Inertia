@@ -134,7 +134,7 @@ class ChatController extends Controller
             'type' => 'message',
             'message' => $notificationData 
         ]);
-
+        $messageTime = $message->created_at->timezone('Europe/Istanbul')->format('H:i');
         broadcast(new NewNotification($notification))->toOthers();
 
         // 🌟 Taze nesneyi frontend'e fırlatırken read_at'in null olduğunu açıkça belirtiyoruz
@@ -143,6 +143,7 @@ class ChatController extends Controller
             'conversation_id' => $message->conversation_id,
             'sender_id' => $message->sender_id,
             'body' => $message->body,
+            'time' => $messageTime,
             'read_at' => null, // 🌟 İLK ANDA ASLA ÇİFT TİK PARLAMASIN DEKLARASYONU
             'created_at' => $message->created_at->toISOString(),
             'sender' => $message->sender
