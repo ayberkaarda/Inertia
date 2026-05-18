@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\Badge;
 use App\Models\Skill;
+use Illuminate\Validation\Rule;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -34,21 +36,40 @@ class UserManagementController extends Controller
     {
         Gate::authorize('manage-users');
 
+        // 1. Kurşun Geçirmez Doğrulama (Validation)
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            // Rule::unique ile tablo ve kolonu doğrudan belirtiyoruz (En güvenli yol)
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => 'required|string|min:8',
             'role' => 'required|string|in:user,admin,observer',
+        ], [
+            // Laravel'in standart İngilizce hatası yerine bizim mesajımız dönsün
+            'email.unique' => 'Kral, bu e-posta adresi sistemde zaten var, başka dene!' 
         ]);
 
-        User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
-        ]);
+        // 2. MySQL Duvarına Karşı Kalkan (Try-Catch)
+        try {
+            User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role' => $validated['role'],
+            ]);
 
-        return back()->with('message', 'User created successfully! 🚀');
+            return back()->with('message', 'User created successfully! 🚀');
+
+        } catch (QueryException $e) {
+            // Eğer MySQL 1062 (Duplicate Entry - Çift Kayıt) hatası fırlatırsa 500 yemesin diye burada yakalıyoruz
+            if ($e->errorInfo[1] == 1062) {
+                return back()
+                    ->withErrors(['email' => 'Veritabanında bu e-posta ile çakışan bir kayıt var! Lütfen farklı bir e-posta deneyin.'])
+                    ->withInput();
+            }
+            
+            // Başka bir SQL hatasıysa sistemi durdur
+            throw $e; 
+        }
     }
 
     public function storeBadge(Request $request)
