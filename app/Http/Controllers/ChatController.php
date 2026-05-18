@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Models\Notification; 
 use App\Events\MessageSent;
 use App\Events\NewNotification; 
-use App\Events\MessagesRead; // 🌟 Görüldü eventi eklendi
+use App\Events\MessagesRead;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -38,7 +38,7 @@ class ChatController extends Controller
                         'avatar' => $otherUser->avatar, 
                     ],
                     'last_message' => $lastMessage ? $lastMessage->body : 'No messages yet...',
-                    'time' => $lastMessage ? $lastMessage->created_at->diffForHumans() : '',
+                    'time' => $lastMessage ? $lastMessage->created_at->timezone('Europe/Istanbul')->diffForHumans() : '',
                 ];
             });
 
@@ -65,16 +65,19 @@ class ChatController extends Controller
             ]);
         }
 
-        // 🌟 Odaya ilk girdiğinde karşı taraftan gelen okunmamış mesajları temizle
+        // Odaya girildiğinde okunmamış mesajları okundu yap
         Message::where('conversation_id', $conversation->id)
             ->where('sender_id', $receiver->id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        // Karşı tarafa anlık sinyal gönder: "Odaya girdim, eski mesajlarını okudum!"
         broadcast(new MessagesRead($conversation->id, $userId))->toOthers();
 
-        $messages = $conversation->messages()->with('sender')->get();
+        // 🌟 ZAMAN DİLİMİ SABİTLEYİCİ: Eski mesajları çekerken saatleri Europe/Istanbul'a göre formatla
+        $messages = $conversation->messages()->with('sender')->get()->map(function($msg) {
+            $msg->time = $msg->created_at->timezone('Europe/Istanbul')->format('H:i');
+            return $msg;
+        });
 
         return Inertia::render('Chat/Room', [
             'conversation' => $conversation,
@@ -84,46 +87,45 @@ class ChatController extends Controller
         ]);
     }
 
-    // 🌟 MANUEL GÖRÜLDÜ TETİKLEYİCİ API'Sİ
+    // 🌟 MANUEL GÖRÜLDÜ TETİKLEYİCİ
     public function markAsRead(Conversation $conversation)
     {
         $userId = Auth::id();
         
-        $updatedCount = Message::where('conversation_id', $conversation->id)
+        Message::where('conversation_id', $conversation->id)
             ->where('sender_id', '!=', $userId)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        // Sinyali her durumda gönderiyoruz ki ön yüz anlık senkronize olsun
         broadcast(new MessagesRead($conversation->id, $userId))->toOthers();
 
         return response()->json(['success' => true]);
     }
 
-    // 🌟 MESAJI FIRLAT VE BİLDİRİME LİNK GİZLE
+    // 🌟 MESAJ GÖNDERME
     public function store(Request $request, Conversation $conversation)
     {
         $request->validate(['body' => 'required|string']);
 
         $userId = Auth::id();
 
-        // 1. Mesajı veritabanına kaydet (Yeni mesaj kesinlikle okunmamıştır = null)
         $message = $conversation->messages()->create([
             'sender_id' => $userId,
             'body' => $request->body,
-            'read_at' => null, // 🌟 Garantiye alıyoruz
+            'read_at' => null, 
         ]);
 
         $message->load('sender');
+        $message->read_at = null;
 
-        // 2. REVERB İLE MESAJI KARŞI TARAFA FIRLAT
+        // 🌟 REAL-TIME SİNYAL: Giden mesaja da Türkiye saatini gömüyoruz
+        $messageTime = $message->created_at->timezone('Europe/Istanbul')->format('H:i');
+        $message->time = $messageTime;
+
         broadcast(new MessageSent($message))->toOthers();
 
-        // 3. BİLDİRİME LİNK GİZLEME ALANI
-        $receiverId = $conversation->user_one_id === $userId 
-                        ? $conversation->user_two_id 
-                        : $conversation->user_one_id;
-
+        // Bildirim mantığı
+        $receiverId = $conversation->user_one_id === $userId ? $conversation->user_two_id : $conversation->user_one_id;
         $notificationData = json_encode([
             'text' => Auth::user()->name . " sent you an encrypted message.",
             'link' => '/chat/' . $userId 
@@ -134,19 +136,18 @@ class ChatController extends Controller
             'type' => 'message',
             'message' => $notificationData 
         ]);
-        $messageTime = $message->created_at->timezone('Europe/Istanbul')->format('H:i');
+
         broadcast(new NewNotification($notification))->toOthers();
 
-        // 🌟 Taze nesneyi frontend'e fırlatırken read_at'in null olduğunu açıkça belirtiyoruz
         return response()->json([
             'id' => $message->id,
             'conversation_id' => $message->conversation_id,
             'sender_id' => $message->sender_id,
             'body' => $message->body,
-            'time' => $messageTime,
-            'read_at' => null, // 🌟 İLK ANDA ASLA ÇİFT TİK PARLAMASIN DEKLARASYONU
+            'read_at' => null, 
+            'time' => $messageTime, // 🌟 Tam anlık format (Örn: 17:39)
             'created_at' => $message->created_at->toISOString(),
             'sender' => $message->sender
-        ]);
+        ]); 
     }
 }
