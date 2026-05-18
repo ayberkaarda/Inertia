@@ -76,19 +76,56 @@ class AiInsightsController extends Controller
             ];
         });
 
-        // 2. Project Insights (Görev Analizi)
-        $dbProjects = Card::where('is_completed', false)
+        // 🌟 2. Project Insights (Gerçekçi ve Akıllı Görev Analizi)
+        $dbProjects = Card::with(['users.skills', 'users.badges', 'requiredSkills', 'sprint'])
+            ->where('is_completed', false)
+            ->whereHas('sprint', function ($q) {
+                $q->whereIn('status', ['active', 'planned']);
+            })
             ->latest()
             ->take(6)
             ->get()
             ->map(function($card) {
-                // Başarı Güveni Türetme: Zorluk arttıkça güven düşer
-                $confidence = max(10, 100 - ($card->complexity_level * 8));
                 
-                // Atama Nedeni Belirleme
-                $reasons = ['High Skill Match', 'Deadline Critical', 'Load Balanced'];
-                $reason = $reasons[$card->id % 3];
+                // --- 1. Eşleşme Skoru (Confidence) Hesaplama ---
+                $reqSkills = $card->requiredSkills->pluck('name')->map(fn($s) => strtolower($s))->toArray();
+                $assignedUsers = $card->users;
 
+                if ($assignedUsers->isEmpty()) {
+                    // Görev kimseye atanmamışsa güven skoru düşük olur (Örn: 20 ile 40 arası)
+                    $confidence = max(15, 50 - ($card->complexity_level * 5));
+                    $reason = 'Unassigned Risk';
+                } else if (empty($reqSkills)) {
+                    // Görev atanmış ama özel bir yetenek gerektirmiyorsa, zorluğa göre ortalama bir güven ver
+                    $confidence = max(50, 90 - ($card->complexity_level * 4));
+                    $reason = 'General Task';
+                } else {
+                    // Görev atanmış ve yetenek gerektiriyorsa GERÇEK EŞLEŞMEYİ hesapla
+                    $totalMatchRate = 0;
+                    foreach ($assignedUsers as $user) {
+                        $userKeywords = array_merge(
+                            $user->skills->pluck('name')->map(fn($s) => strtolower($s))->toArray(),
+                            $user->badges->pluck('name')->map(fn($b) => strtolower($b))->toArray()
+                        );
+                        
+                        $intersect = array_intersect($userKeywords, $reqSkills);
+                        $totalMatchRate += (count($intersect) / count($reqSkills)) * 100;
+                    }
+                    
+                    // Atanan kişilerin ortalama eşleşme yüzdesi
+                    $avgMatchRate = $totalMatchRate / $assignedUsers->count();
+                    
+                    // Zorluk çarpanı ekle (Görev kolaysa güven biraz daha artar, zorsa azalır)
+                    $difficultyModifier = (5 - $card->complexity_level) * 2; 
+                    
+                    $confidence = min(99, max(10, round($avgMatchRate + $difficultyModifier)));
+                    
+                    if ($confidence >= 80) $reason = 'High Synergy';
+                    elseif ($confidence >= 50) $reason = 'Skill Balanced';
+                    else $reason = 'Skill Gap Detected';
+                }
+
+                // Ekrana yansıt
                 return [
                     'name' => $card->title,
                     'complexity' => $card->complexity_level,

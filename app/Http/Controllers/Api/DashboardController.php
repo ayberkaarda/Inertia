@@ -16,12 +16,16 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // ⏳ ZAMAN BEKÇİSİ (TIME KEEPER): Tarihi geçmiş sprintleri anında "Expired" yap!
+        Sprint::whereIn('status', ['active', 'planned'])
+            ->whereDate('end_date', '<', Carbon::today())
+            ->update(['status' => 'expired']);
+
         // 💀 SESSİZ PASLANMA MOTORUNU ÇALIŞTIR
         $this->processSkillDecay();
 
         $user = request()->user();
         
-        // Kullanıcının yetenek ve rozetlerini önden yüklüyoruz (Algoritma için gerekli)
         $user->loadMissing(['skills', 'badges']);
 
         // 1. GLOBAL SYNERGY
@@ -47,8 +51,8 @@ class DashboardController extends Controller
         // 4. DİNAMİK GRAFİK VERİSİ
         $chartData = $this->getEfficiencyData();
 
-        // 🌟 ZOMBİ KALKANI: Sadece aktif sprintlerin ID'lerini al
-        $activeSprintIds = Sprint::where('status', 'active')->pluck('id')->toArray();
+        // 🌟 Sadece AKTİF ve PLANLANMIŞ sprintlerin ID'lerini al (Expired olanlar kalkanı geçemez)
+        $activeSprintIds = Sprint::whereIn('status', ['active', 'planned'])->pluck('id')->toArray();
 
         // 🌟 AKILLI ÖNERİ MOTORU: Kullanıcının Yetenek + Rozetlerine göre aktif görevleri tara
         $smartSuggestion = $this->getSmartSuggestion($user, $activeSprintIds);
@@ -61,7 +65,7 @@ class DashboardController extends Controller
             'skill_balance' => $balanceDisplay,
             'efficiency_data' => $chartData,
             
-            // 🌟 FİLTRELENDİ: Sadece aktif sprintteki bitmemiş görevleri tabloya bas
+            // 🌟 FİLTRELENDİ: Sadece aktif/planlanmış sprintteki bitmemiş görevleri tabloya bas
             'tasks' => Card::with(['users', 'requiredSkills', 'badges'])
                 ->where('is_completed', false)
                 ->whereIn('sprint_id', $activeSprintIds)
@@ -69,7 +73,6 @@ class DashboardController extends Controller
                 ->take(3)
                 ->get(),
                 
-            // 🌟 YENİ EKLENDİ: Ekrana basılacak en uygun görev
             'smart_suggestion' => $smartSuggestion,
 
             'active_sprints_list' => Sprint::where('status', 'active')->with('tasks.users')->latest()->take(3)->get(),
@@ -84,26 +87,20 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * 🧠 SMART SUGGESTION MOTORU (Sadece Aktif Görevler İçin)
-     * Kullanıcının yetenek ve rozetlerini birleştirip en yüksek eşleşen görevi bulur.
-     */
     private function getSmartSuggestion($user, $activeSprintIds)
     {
-        // Kullanıcının yeteneklerini ve rozetlerini küçük harfe çevirip tek bir havuzda birleştiriyoruz
         $userKeywords = array_merge(
             $user->skills->pluck('name')->map(fn($s) => strtolower($s))->toArray(),
             $user->badges->pluck('name')->map(fn($b) => strtolower($b))->toArray()
         );
 
-        // Sadece AKTİF sprintlerdeki ve bitmemiş görevleri çek
         $activeCards = Card::with('requiredSkills')
             ->where('is_completed', false)
             ->whereIn('sprint_id', $activeSprintIds)
             ->get();
 
         if ($activeCards->isEmpty()) {
-            return null; // Aktif görev yoksa önerme
+            return null; 
         }
 
         $bestCard = null;
@@ -112,23 +109,19 @@ class DashboardController extends Controller
         foreach ($activeCards as $card) {
             $reqSkills = $card->requiredSkills->pluck('name')->map(fn($s) => strtolower($s))->toArray();
             
-            // Eğer görevin hiçbir yetenek gereksinimi yoksa, herkes için %50 temel eşleşme ver
             if (empty($reqSkills)) {
                 $matchRate = 50; 
             } else {
-                // Görevin istediği yeteneklerle, kullanıcının rozet+yetenek havuzunu kesiştir
                 $intersect = array_intersect($userKeywords, $reqSkills);
                 $matchRate = (count($intersect) / count($reqSkills)) * 100;
             }
 
-            // En yüksek eşleşmeyi bul
             if ($matchRate >= $bestMatchRate) {
                 $bestMatchRate = $matchRate;
                 $bestCard = $card;
             }
         }
 
-        // Eğer en iyi eşleşme %0 ise (adamın hiçbir alakası yoksa) null dön, alakasız görev önerme
         if ($bestMatchRate == 0 && count($userKeywords) > 0) {
             return null;
         }
@@ -138,8 +131,6 @@ class DashboardController extends Controller
             'match_rate' => round($bestMatchRate)
         ];
     }
-
-    // --- AŞAĞIDAKİ YARDIMCI FONKSİYONLARIN AYNI KALDI ---
 
     private function getEfficiencyData()
     {
