@@ -9,6 +9,11 @@ Modern ekipler için geliştirilmiş; **Laravel, React, Inertia.js ve Python (Fa
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 
+### 🌓 Ana Sayfa ve Giriş Sayfası
+| Dashboard | Login Page |
+|:-------------------------:|:------------------------:|
+| <img src="./dashboard.png" width="100%" alt="dashboard Home"> | <img src="./loginform.jpeg" width="100%" alt="Loginpage"> |
+
 ## ✨ Öne Çıkan Özellikler
 
 ### 🧠 Yapay Zeka Destekli İçgörüler (AI Insights)
